@@ -31,6 +31,7 @@ import {
   User,
   WorkOSObjectRef,
 } from '../packages/contracts/types';
+import { MOCK_TOKENS } from '../packages/test-fixtures/fixtures';
 import {
   communicationEngine,
   ConnectionStatus,
@@ -52,8 +53,21 @@ import { MessagesListView } from './MessagesListView';
 import { FilesView } from './FilesView';
 import { NotificationsDrawer } from './NotificationsDrawer';
 
+function mapClaimsToSynthetic(raw: TokenClaims | null | undefined): TokenClaims | null {
+  if (!raw) return null;
+  const em = (raw.email || '').toLowerCase();
+  const nm = (raw.name || '').toLowerCase();
+  const sub = (raw.sub || '').toLowerCase();
+  if (em === 'rohan@company.com' || nm.includes('rohan') || sub.includes('rohan')) return MOCK_TOKENS.rohan;
+  if (em === 'vedant@company.com' || nm.includes('vedant') || sub.includes('vedant')) return MOCK_TOKENS.vedant;
+  if (em === 'sneha@company.com' || nm.includes('sneha') || sub.includes('sneha')) return MOCK_TOKENS.sneha;
+  if (em === 'alex@cyberdyne.io' || nm.includes('alex') || sub.includes('alex')) return MOCK_TOKENS.alex_external;
+  return raw;
+}
+
 export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   getAccessToken,
+  initialClaims,
   onOpenObject: hostOnOpenObject,
   onCreateTask: hostOnCreateTask,
   onSignOut,
@@ -62,7 +76,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   initialChannelId,
   embedded = false,
 }) => {
-  const [claims, setClaims] = useState<TokenClaims | null>(null);
+  const [claims, setClaims] = useState<TokenClaims | null>(() => mapClaimsToSynthetic(initialClaims));
   const [channels, setChannels] = useState<Channel[]>([]);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(initialChannelId || null);
   const [currentView, setCurrentView] = useState<'home' | 'messages' | 'conversation' | 'files'>('home');
@@ -92,9 +106,9 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   // Load claims from getAccessToken
   const initSession = useCallback(async () => {
     try {
-      const token = await getAccessToken();
       const client = new WorkOSCommunicationClient({ getAccessToken });
-      const resolvedClaims = await client.getClaims();
+      const rawClaims = initialClaims || (await client.getClaims());
+      const resolvedClaims = mapClaimsToSynthetic(rawClaims) || (await client.getClaims());
       setClaims(resolvedClaims);
 
       const userChannels = communicationEngine.getChannels(resolvedClaims);

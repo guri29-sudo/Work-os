@@ -1030,16 +1030,70 @@ export class WorkOSCommunicationClient {
   }
 
   public async getClaims(): Promise<TokenClaims> {
+    if (this.cachedClaims) return this.cachedClaims;
     const token = await this.getAccessTokenFn();
-    // In real deployment, token is a signed JWT. In this standalone/demo system,
-    // we match synthetic token keys or parse claims:
+
+    // 1. If token is a JWT (header.payload.sig), decode payload:
+    if (token && typeof token === 'string' && token.includes('.')) {
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const base64Url = parts[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(
+            atob(base64)
+              .split('')
+              .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+              .join('')
+          );
+          const parsed = JSON.parse(jsonPayload);
+          const email = (parsed.email || '').toLowerCase();
+          const name = (parsed.name || '').toLowerCase();
+          const sub = parsed.sub || '';
+
+          if (email === 'rohan@company.com' || name.includes('rohan') || sub.includes('rohan')) {
+            this.cachedClaims = MOCK_TOKENS.rohan;
+            return this.cachedClaims;
+          }
+          if (email === 'vedant@company.com' || name.includes('vedant') || sub.includes('vedant')) {
+            this.cachedClaims = MOCK_TOKENS.vedant;
+            return this.cachedClaims;
+          }
+          if (email === 'sneha@company.com' || name.includes('sneha') || sub.includes('sneha')) {
+            this.cachedClaims = MOCK_TOKENS.sneha;
+            return this.cachedClaims;
+          }
+          if (email === 'alex@cyberdyne.io' || name.includes('alex') || sub.includes('alex')) {
+            this.cachedClaims = MOCK_TOKENS.alex_external;
+            return this.cachedClaims;
+          }
+
+          if (parsed.sub && parsed.name) {
+            this.cachedClaims = parsed as TokenClaims;
+            return this.cachedClaims;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to decode JWT token payload in client:', e);
+      }
+    }
+
+    // 2. Exact match in MOCK_TOKENS
     if (MOCK_TOKENS[token]) {
       this.cachedClaims = MOCK_TOKENS[token];
       return this.cachedClaims;
     }
-    // Fallback: lookup by user or default to Vedant
-    const found = Object.values(MOCK_TOKENS).find((t) => t.sub === token || t.email === token);
-    this.cachedClaims = found || MOCK_TOKENS.vedant;
+
+    // 3. Fallback: match by sub, email, or name
+    const found = Object.values(MOCK_TOKENS).find(
+      (t) => t.sub === token || t.email.toLowerCase() === token.toLowerCase() || t.name.toLowerCase() === token.toLowerCase()
+    );
+    if (found) {
+      this.cachedClaims = found;
+      return this.cachedClaims;
+    }
+
+    this.cachedClaims = MOCK_TOKENS.vedant;
     return this.cachedClaims;
   }
 

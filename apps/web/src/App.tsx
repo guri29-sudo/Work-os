@@ -125,6 +125,7 @@ export default function App() {
       <div className="flex-1 overflow-hidden relative">
         <CommunicationApp
           key={currentClaims.sub}
+          initialClaims={currentClaims}
           getAccessToken={getAccessToken}
           onOpenObject={(obj) => setHostOpenedObject(obj)}
           onCreateTask={(ctx) => setHostTaskContext(ctx)}

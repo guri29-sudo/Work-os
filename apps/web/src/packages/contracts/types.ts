@@ -159,6 +159,7 @@ export interface WebhookEvent {
 
 export interface CommunicationAppProps {
   getAccessToken: () => Promise<string>;
+  initialClaims?: TokenClaims;
   onOpenObject?: (obj: WorkOSObjectRef) => void;
   onCreateTask?: (context: { messageId: string; content: string; authorName: string }) => void;
   theme?: {
