@@ -61,14 +61,19 @@ async function seed() {
   // Seed all users from test-fixtures + the 4 specified accounts
   const allUserRecords = [...ALL_USERS];
   for (const su of SEED_USERS) {
-    if (!allUserRecords.some((u) => u.id === su.id)) {
+    const existing = allUserRecords.find((u) => u.id === su.id);
+    if (existing) {
+      existing.name = su.name;
+      existing.email = su.email;
+      existing.role = su.role as any;
+    } else {
       allUserRecords.push({
         id: su.id,
         tag: su.role === "admin" ? "acme-admin" : "acme-member",
         company_id: su.company_id,
         name: su.name,
         email: su.email,
-        avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${su.name}`,
+        avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(su.name)}`,
         role: su.role as any,
         permissions: su.role === "admin"
           ? ["communication.access", "communication.channel.create", "communication.channel.manage", "communication.member.manage", "communication.message.send", "communication.audit.read"]
@@ -93,7 +98,13 @@ async function seed() {
           project_ids: [],
           is_active: true,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: users.id,
+          set: {
+            name: u.name,
+            avatar_url: u.avatar_url,
+          },
+        });
     });
   }
   console.log(`✓ Seeded ${allUserRecords.length} users`);
