@@ -468,11 +468,13 @@ class CommunicationEngine {
     // Update channel metadata
     channel.last_message = `${claims.name.split(' ')[0]}: ${payload.content.slice(0, 45)}...`;
     channel.last_message_at = 'Just now';
+    channel.unread_count = (channel.unread_count || 0) + 1;
 
     this.persist();
 
     // Real-time broadcast
     this.emit('message.created', newMessage);
+    this.emit('channel.updated', channel);
 
     // Dispatch webhooks
     this.emitWebhook(
@@ -997,6 +999,17 @@ class CommunicationEngine {
     return this.notifications.filter(
       (n) => n.company_id === claims.company_id && (n.user_id === claims.sub || !n.user_id) && !n.is_read
     ).length;
+  }
+
+  public getMentionsCount(claims: TokenClaims): number {
+    this.verifyToken(claims);
+    const notifMentions = this.notifications.filter(
+      (n) => n.company_id === claims.company_id && n.user_id === claims.sub && n.kind === 'mention'
+    ).length;
+    const msgMentions = this.messages.filter(
+      (m) => m.company_id === claims.company_id && m.mentions && m.mentions.includes(claims.sub)
+    ).length;
+    return Math.max(notifMentions, msgMentions);
   }
 
   /**

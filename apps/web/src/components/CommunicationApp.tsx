@@ -192,7 +192,10 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       }
     };
     loadNotifCount();
-    const unsubNotifCreated = communicationEngine.subscribe('notification.created', loadNotifCount);
+    const unsubNotifCreated = communicationEngine.subscribe('notification.created', () => {
+      loadNotifCount();
+      if (claims) setChannels(communicationEngine.getChannels(claims));
+    });
     const unsubNotifUpdated = communicationEngine.subscribe('notification.updated', loadNotifCount);
     const unsubNotifAllRead = communicationEngine.subscribe('notification.all_read', loadNotifCount);
 

@@ -53,7 +53,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     ? propTotalUnread
     : channels.reduce((sum, c) => sum + (c.unread_count || 0), 0);
 
-  const totalMentions = channels.filter((c) => (c.unread_count || 0) > 0 && c.type !== 'direct').length;
+  const totalMentions = communicationEngine.getMentionsCount(claims);
 
   // Recent files count from API (files shared in user's channels, last 7 days)
   const totalFiles = communicationEngine.getRecentFilesCount(claims, 7);
