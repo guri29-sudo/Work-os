@@ -54,6 +54,7 @@ interface ConversationViewProps {
   claims: TokenClaims;
   channel: Channel;
   messages: Message[];
+  hasUnreadChannels?: boolean;
   onBack?: () => void;
   onOpenChannelList?: () => void;
   onOpenThread: (message: Message) => void;
@@ -81,6 +82,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   claims,
   channel,
   messages,
+  hasUnreadChannels = false,
   onBack,
   onOpenChannelList,
   onOpenThread,
@@ -337,7 +339,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                   {channel.name}
                 </h2>
                 {onOpenChannelList && (
-                  <ChevronDown className="w-4 h-4 text-slate-400 md:hidden shrink-0" />
+                  <div className="flex items-center gap-1 md:hidden">
+                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                    {hasUnreadChannels && (
+                      <span className="w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                    )}
+                  </div>
                 )}
                 {channel.is_archived && (
                   <span className="text-[10px] font-medium bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">

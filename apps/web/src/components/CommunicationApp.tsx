@@ -274,6 +274,13 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
     .slice(0, 2);
 
   const totalUnread = channels.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+
+  // Dynamic document title with unread notifications badge
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = totalUnread > 0 ? `(${totalUnread}) WorkOS Communication` : 'WorkOS Communication';
+    }
+  }, [totalUnread]);
   const companyDisplayName =
     claims.company_id === 'comp_external_2' ? 'Cyberdyne Systems Corp' : 'WorkOS Enterprise Labs';
   const companyName = companyDisplayName;
@@ -443,7 +450,12 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                   title="Notifications"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-4 h-4 shrink-0" />
+                  <div className="relative shrink-0">
+                    <Bell className="w-4 h-4" />
+                    {(unreadNotificationsCount > 0 || totalUnread > 0) && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    )}
+                  </div>
                   <span className={sidebarCollapsed ? 'hidden' : 'hidden lg:inline'}>
                     Notifications
                   </span>
@@ -521,11 +533,17 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                       >
                         <div className="flex items-center gap-2.5 truncate">
                           <span
-                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                              isActive ? 'bg-white' : 'bg-blue-400 group-hover:bg-white'
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                              chan.unread_count
+                                ? 'bg-amber-400 ring-2 ring-amber-400/40 animate-pulse'
+                                : isActive
+                                ? 'bg-white'
+                                : 'bg-blue-400/40 group-hover:bg-white'
                             }`}
                           />
-                          <span className="truncate">{chan.name}</span>
+                          <span className={`truncate ${chan.unread_count ? 'font-bold text-white' : ''}`}>
+                            {chan.name}
+                          </span>
                         </div>
                         {chan.unread_count ? (
                           <span className="w-4 h-4 rounded-full bg-white text-blue-900 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
@@ -642,16 +660,21 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--color-bg-app)] relative">
         {/* Top Header Bar */}
         <header className="h-14 sm:h-16 px-2.5 sm:px-6 lg:px-8 bg-[var(--color-bg-app)] border-b border-[var(--color-border)] flex items-center justify-between shrink-0 z-10 gap-2 sm:gap-4">
-          {/* Mobile Channels Drawer Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setShowMobileChannelsDrawer(true)}
-            className="md:hidden min-h-[38px] min-w-[38px] flex items-center justify-center p-1.5 rounded-xl text-slate-600 dark:text-slate-200 hover:text-blue-700 hover:bg-white/80 active:bg-blue-100 transition shrink-0"
-            aria-label="Open channels list"
-            title="Channels & Messages"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          {/* Mobile Channels Drawer Toggle Button with Unread Indicator Dot */}
+          <div className="relative md:hidden shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowMobileChannelsDrawer(true)}
+              className="min-h-[38px] min-w-[38px] flex items-center justify-center p-1.5 rounded-xl text-slate-600 dark:text-slate-200 hover:text-blue-700 hover:bg-white/80 active:bg-blue-100 transition"
+              aria-label="Open channels list"
+              title="Channels & Messages"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            {totalUnread > 0 && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+            )}
+          </div>
 
           {/* Omnibox Search bar */}
           <div
@@ -694,7 +717,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
               <HelpCircle className="w-4 h-4" />
             </div>
 
-            {/* Notification Bell with unread dot */}
+            {/* Notification Bell with unread dot (Mobile & PC) */}
             <div className="relative shrink-0">
               <button
                 onClick={() => setShowNotificationsDrawer(!showNotificationsDrawer)}
@@ -704,8 +727,8 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
               >
                 <Bell className="w-4 h-4" />
               </button>
-              {unreadNotificationsCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-[#edf3fc] dark:ring-slate-900" />
+              {(unreadNotificationsCount > 0 || totalUnread > 0) && (
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-[#edf3fc] dark:ring-slate-900 animate-pulse" />
               )}
             </div>
 
@@ -759,6 +782,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
               claims={claims}
               channel={activeChannel}
               messages={messages}
+              hasUnreadChannels={channels.some((c) => c.id !== activeChannel.id && (c.unread_count || 0) > 0)}
               onBack={() => {
                 setCurrentView('home');
                 setShowMobileChannelsDrawer(false);
@@ -862,7 +886,12 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
               }`}
               aria-label="Channels tab"
             >
-              <Hash className="w-5 h-5" />
+              <div className="relative">
+                <Hash className="w-5 h-5" />
+                {channels.some((c) => c.type !== 'direct' && (c.unread_count || 0) > 0) && (
+                  <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-[#0a1a36] animate-pulse" />
+                )}
+              </div>
               <span>Channels</span>
             </button>
 
@@ -1159,12 +1188,16 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                           }`}
                         >
                           <div className="flex items-center gap-2.5 truncate">
-                            {chan.type === 'private' ? (
+                            {Boolean(chan.unread_count) ? (
+                              <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-amber-400/40 animate-pulse shrink-0" />
+                            ) : chan.type === 'private' ? (
                               <Lock className="w-3.5 h-3.5 text-blue-300 shrink-0" />
                             ) : (
                               <Hash className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                             )}
-                            <span className="truncate">{chan.name}</span>
+                            <span className={`truncate ${Boolean(chan.unread_count) ? 'font-bold text-white' : ''}`}>
+                              {chan.name}
+                            </span>
                           </div>
                           {Boolean(chan.unread_count) && (
                             <span className="px-1.5 py-0.5 rounded-full bg-white text-blue-900 font-mono text-[10px] font-bold">
@@ -1210,10 +1243,15 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                           }`}
                         >
                           <div className="flex items-center gap-2.5 truncate">
-                            <div className="w-6 h-6 rounded-full bg-blue-500/30 text-blue-200 flex items-center justify-center font-bold text-[10px] shrink-0 border border-blue-400/30">
-                              {initials}
+                            <div className="relative shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-blue-500/30 text-blue-200 flex items-center justify-center font-bold text-[10px] border border-blue-400/30">
+                                {initials}
+                              </div>
+                              {Boolean(chan.unread_count) && (
+                                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0c1527] animate-pulse" />
+                              )}
                             </div>
-                            <span className="truncate">{chan.name}</span>
+                            <span className={`truncate ${Boolean(chan.unread_count) ? 'font-bold text-white' : ''}`}>{chan.name}</span>
                           </div>
                           {Boolean(chan.unread_count) && (
                             <span className="px-1.5 py-0.5 rounded-full bg-white text-blue-900 font-mono text-[10px] font-bold">

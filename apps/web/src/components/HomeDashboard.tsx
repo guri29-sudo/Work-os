@@ -39,7 +39,14 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
   const hour = now.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting =
+    hour >= 5 && hour < 12
+      ? 'Good morning'
+      : hour >= 12 && hour < 17
+      ? 'Good afternoon'
+      : hour >= 17 && hour < 22
+      ? 'Good evening'
+      : 'Good night';
 
   // Single source of truth for unread: passed prop or calculated from channels
   const unreadCount = propTotalUnread !== undefined

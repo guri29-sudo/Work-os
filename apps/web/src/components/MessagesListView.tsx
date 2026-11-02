@@ -158,9 +158,11 @@ export const MessagesListView: React.FC<MessagesListViewProps> = ({
                       <Hash className="w-5 h-5" />
                     )}
                   </div>
-                  {isDirect && (
+                  {unread > 0 ? (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900 animate-pulse" />
+                  ) : isDirect ? (
                     <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Content */}
