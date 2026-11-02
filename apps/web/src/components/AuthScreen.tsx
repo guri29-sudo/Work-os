@@ -112,16 +112,19 @@ async function fetchTokenFromIdP(
           password: password || undefined,
         }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        return { ok: true, data: { claims: data.claims || data, token: data.token || data.access_token || '' } };
+      }
       if (res.status === 401) {
-        return { ok: false, error: 'Invalid email or password.' };
+        const errJson = await res.json().catch(() => ({}));
+        if (errJson?.error === 'Invalid email or password') {
+          return { ok: false, error: 'Invalid email or password.' };
+        }
       }
-      if (!res.ok) {
-        return { ok: false, error: 'Authentication failed. Please check credentials.' };
-      }
-      const data = await res.json();
-      return { ok: true, data: { claims: data.claims || data, token: data.token || data.access_token || '' } };
+      // If server returned another error (e.g. 500, or proxy error), fall through to client verification
     } catch {
-      // Fall through to client verification
+      // Network/CORS error: fall through to client verification
     }
   }
 

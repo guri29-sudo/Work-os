@@ -81,6 +81,9 @@ export default fp(async (fastify: FastifyInstance) => {
       path === "/" ||
       path.startsWith("/health") ||
       path.startsWith("/v1/health") ||
+      path.startsWith("/token") ||
+      path.startsWith("/.well-known") ||
+      path.startsWith("/idp") ||
       path.startsWith("/ws") ||
       path.startsWith("/v1/ws") ||
       path.startsWith("/documentation") ||
