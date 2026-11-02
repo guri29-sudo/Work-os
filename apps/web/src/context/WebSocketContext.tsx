@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "./AuthContext.js";
 
 export type WsStatus = "connected" | "reconnecting" | "offline";
@@ -30,7 +30,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const subscribe = useCallback(
     (conversationId: string) => {
       activeSubsRef.current.add(conversationId);
-      console.info(`[WS Client] Sending subscribe for: ${conversationId}`);
       sendJson({ type: "subscribe", conversationId });
     },
     [sendJson],
@@ -39,7 +38,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const unsubscribe = useCallback(
     (conversationId: string) => {
       activeSubsRef.current.delete(conversationId);
-      console.info(`[WS Client] Sending unsubscribe for: ${conversationId}`);
       sendJson({ type: "unsubscribe", conversationId });
     },
     [sendJson],
@@ -60,7 +58,16 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     }
 
     setStatus("reconnecting");
-    const ws = new WebSocket(`ws://localhost:3001/ws?token=${token}`);
+    const wsBase =
+      (import.meta.env.VITE_COMMUNICATION_WS_URL as string | undefined) ||
+      (typeof window !== "undefined"
+        ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}`
+        : "");
+    if (!wsBase) {
+      setStatus("offline");
+      return;
+    }
+    const ws = new WebSocket(`${wsBase.replace(/\/$/, "")}/ws?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -73,16 +80,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(event.data);
         if (parsed.type === "auth_ack") {
           setStatus("connected");
-          console.info("[WS Client] Authenticated. Restoring subscriptions:", Array.from(activeSubsRef.current));
           for (const convId of activeSubsRef.current) {
             ws.send(JSON.stringify({ type: "subscribe", conversationId: convId }));
           }
         } else if (parsed.type === "subscribed") {
-          console.info(`[WS Client] Subscribed ack: ${parsed.conversationId}`);
+          // subscribed ack
         } else if (parsed.type === "unsubscribed") {
-          console.info(`[WS Client] Unsubscribed ack: ${parsed.conversationId}`);
+          // unsubscribed ack
         } else if (parsed.type === "error") {
-          console.warn("[WS Client] Server error:", parsed);
+          // server error
         }
 
         setLastEvent({

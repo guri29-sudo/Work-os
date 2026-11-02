@@ -1,19 +1,8 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { AuthProvider } from "./context/AuthContext.js";
-import { WebSocketProvider } from "./context/WebSocketContext.js";
-import { AppShell } from "./components/AppShell.js";
-import "./index.css";
+import {createRoot} from 'react-dom/client';
+import App from './App';
+import './index.css';
+import { initTheme } from './utils/theme';
 
-const rootElement = document.getElementById("root");
-if (rootElement) {
-  ReactDOM.createRoot(rootElement).render(
-    <React.StrictMode>
-      <AuthProvider>
-        <WebSocketProvider>
-          <AppShell />
-        </WebSocketProvider>
-      </AuthProvider>
-    </React.StrictMode>,
-  );
-}
+initTheme();
+
+createRoot(document.getElementById('root')!).render(<App />);

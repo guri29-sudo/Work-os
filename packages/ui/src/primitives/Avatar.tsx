@@ -4,10 +4,10 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export interface AvatarProps extends AvatarPrimitive.AvatarProps {
-  src?: string | null;
-  name?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
-  presence?: "online" | "idle" | "dnd" | "offline";
+  src?: string | null | undefined;
+  name?: string | undefined;
+  size?: ("xs" | "sm" | "md" | "lg" | "xl") | undefined;
+  presence?: ("online" | "idle" | "dnd" | "offline") | undefined;
 }
 
 export function Avatar({ src, name, size = "md", presence, className, ...props }: AvatarProps) {

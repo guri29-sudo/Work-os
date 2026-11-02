@@ -139,4 +139,26 @@ export default async function channelRoutes(fastify: FastifyInstance) {
 
     return reply.send({ data: archived });
   });
+
+  fastify.post("/v1/channels/:id/unarchive", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const identity = request.identity;
+    policy.require(identity, PERMISSIONS.CHANNEL_MANAGE);
+
+    const unarchived = await conversationsRepo.unarchiveChannel(identity, id);
+    if (!unarchived) {
+      return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Channel not found" } });
+    }
+
+    await auditRepo.write(identity, {
+      action: "channel.unarchived",
+      resourceType: "conversation",
+      resourceId: id,
+      metadata: { is_archived: false },
+      ipAddress: request.ip,
+      userAgent: request.headers["user-agent"],
+    });
+
+    return reply.send({ data: unarchived });
+  });
 }

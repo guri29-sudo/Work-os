@@ -28,6 +28,8 @@ pnpm-debug.log*
 coverage/
 test-results/
 playwright-report/
+screenshots/
+apps/screenshots/
 blob-report/
 
 # OS

@@ -1,4 +1,4 @@
-﻿import { ALL_USERS, COMPANY_ACME, COMPANY_GLOBEX } from "@cs/test-fixtures";
+import { ALL_USERS, COMPANY_ACME, COMPANY_GLOBEX } from "@cs/test-fixtures";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema/index.js";
@@ -6,15 +6,80 @@ import { users, conversations, memberships, messages, messageSeqCounters } from 
 import { sql } from "drizzle-orm";
 import { env } from "../env.js";
 
-const connUrl = process.env.MIGRATION_DATABASE_URL ?? env.DATABASE_URL;
-const pool = postgres(connUrl, { max: 1 });
+const connUrl = process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL ?? env.DATABASE_URL;
+const isRemote = connUrl.includes("sslmode=require") || connUrl.includes("neon.tech") || connUrl.includes("render.com") || connUrl.includes("supabase.co");
+
+const pool = postgres(connUrl, {
+  max: 1,
+  ssl: isRemote ? { rejectUnauthorized: false } : undefined,
+});
 const db = drizzle(pool, { schema });
 
 async function seed() {
-  console.log(`Seeding development database via ${connUrl.replace(/:[^:@]+@/, ":***@")}...`);
+  console.log(`Seeding database via ${connUrl.replace(/:[^:@]+@/, ":***@")}...`);
 
-  // Seed Users
-  for (const u of ALL_USERS) {
+  // Explicit 4 Users (Company 1: Admin, Member A, Member C; Company 2: User)
+  const SEED_USERS = [
+    // Company 1: Admin
+    {
+      id: "00000001-0000-4000-a000-000000000002",
+      company_id: COMPANY_ACME.id,
+      name: "Rohan Deshmukh (Admin)",
+      email: "rohan@company.com",
+      role: "admin",
+      password: "AdminPassword123!",
+    },
+    // Company 1: Member A
+    {
+      id: "00000001-0000-4000-a000-000000000003",
+      company_id: COMPANY_ACME.id,
+      name: "Vedant Kulkarni (Member A)",
+      email: "vedant@company.com",
+      role: "member",
+      password: "MemberPassword123!",
+    },
+    // Company 1: Member C
+    {
+      id: "00000001-0000-4000-a000-000000000004",
+      company_id: COMPANY_ACME.id,
+      name: "Sneha Patil (Member C)",
+      email: "sneha@company.com",
+      role: "member",
+      password: "MemberPassword123!",
+    },
+    // Company 2: User
+    {
+      id: "00000002-0000-4000-a000-000000000001",
+      company_id: COMPANY_GLOBEX.id,
+      name: "Alex Vance (Company 2)",
+      email: "alex@cyberdyne.io",
+      role: "member",
+      password: "MemberPassword123!",
+    },
+  ];
+
+  // Seed all users from test-fixtures + the 4 specified accounts
+  const allUserRecords = [...ALL_USERS];
+  for (const su of SEED_USERS) {
+    if (!allUserRecords.some((u) => u.id === su.id)) {
+      allUserRecords.push({
+        id: su.id,
+        tag: su.role === "admin" ? "acme-admin" : "acme-member",
+        company_id: su.company_id,
+        name: su.name,
+        email: su.email,
+        avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${su.name}`,
+        role: su.role as any,
+        permissions: su.role === "admin"
+          ? ["communication.access", "communication.channel.create", "communication.channel.manage", "communication.member.manage", "communication.message.send", "communication.audit.read"]
+          : ["communication.access", "communication.channel.create", "communication.message.send"],
+        department_ids: [],
+        project_ids: [],
+      });
+    }
+  }
+
+  for (const u of allUserRecords) {
     await db.transaction(async (tx) => {
       await tx.execute(sql`SELECT set_config('app.company_id', ${u.company_id}, true)`);
       await tx
@@ -31,13 +96,13 @@ async function seed() {
         .onConflictDoNothing();
     });
   }
-  console.log(`✓ Seeded ${ALL_USERS.length} users`);
+  console.log(`✓ Seeded ${allUserRecords.length} users`);
 
-  // Seed Channels for Acme and Globex
+  // Seed default channels for Acme and Globex
   const companies = [COMPANY_ACME, COMPANY_GLOBEX];
   for (const comp of companies) {
-    const compUsers = ALL_USERS.filter((u) => u.company_id === comp.id);
-    const owner = compUsers.find((u) => u.role === "owner") ?? compUsers[0];
+    const compUsers = allUserRecords.filter((u) => u.company_id === comp.id);
+    const owner = compUsers.find((u) => u.role === "admin" || u.role === "owner") ?? compUsers[0];
 
     const channelDefs = [
       { name: "general", kind: "public" as const, topic: "Company-wide announcements and watercooler" },
@@ -49,7 +114,6 @@ async function seed() {
       await db.transaction(async (tx) => {
         await tx.execute(sql`SELECT set_config('app.company_id', ${comp.id}, true)`);
 
-        // Check if channel already exists
         const [existing] = await tx
           .select()
           .from(conversations)
@@ -79,7 +143,6 @@ async function seed() {
               last_seq: 0,
             }).onConflictDoNothing();
 
-            // Add initial welcome message with author_id = owner.id
             const [seqRes] = await tx
               .update(messageSeqCounters)
               .set({ last_seq: sql`last_seq + 1` })
@@ -98,7 +161,6 @@ async function seed() {
         }
 
         if (conv) {
-          // Add all company users as members
           for (const u of compUsers) {
             await tx
               .insert(memberships)
@@ -106,12 +168,11 @@ async function seed() {
                 conversation_id: conv.id,
                 user_id: u.id,
                 company_id: comp.id,
-                role: u.role === "owner" ? "owner" : u.role === "admin" ? "admin" : "member",
+                role: u.role === "admin" ? "admin" : "member",
               })
               .onConflictDoNothing();
           }
 
-          // Update member_count
           await tx
             .update(conversations)
             .set({
@@ -123,7 +184,38 @@ async function seed() {
     }
   }
 
-  console.log("✓ Seeded default channels, memberships, and welcome messages");
+  console.log("✓ Seeded default channels, memberships, and sequence counters");
+
+  console.log("\n=================================================================");
+  console.log("DEMO ACCOUNTS (Seeded synthetic credentials for production demo)");
+  console.log("=================================================================");
+  console.log("COMPANY 1 (WorkOS Enterprise Labs):");
+  console.log("  1. Admin:");
+  console.log("     Name:     Rohan Deshmukh");
+  console.log("     Email:    rohan@company.com (or admin@acme.example)");
+  console.log("     Password: AdminPassword123!");
+  console.log("     Role:     Admin (full management & audit permissions)");
+  console.log("-----------------------------------------------------------------");
+  console.log("  2. Member A:");
+  console.log("     Name:     Vedant Kulkarni");
+  console.log("     Email:    vedant@company.com (or member@acme.example)");
+  console.log("     Password: MemberPassword123!");
+  console.log("     Role:     Member");
+  console.log("-----------------------------------------------------------------");
+  console.log("  3. Member C:");
+  console.log("     Name:     Sneha Patil");
+  console.log("     Email:    sneha@company.com");
+  console.log("     Password: MemberPassword123!");
+  console.log("     Role:     Member");
+  console.log("=================================================================");
+  console.log("COMPANY 2 (Cyberdyne Systems Corp - Tenant Isolated):");
+  console.log("  4. Member (External Tenant):");
+  console.log("     Name:     Alex Vance");
+  console.log("     Email:    alex@cyberdyne.io");
+  console.log("     Password: MemberPassword123!");
+  console.log("     Role:     Member (isolated to Company 2 channels/DMs)");
+  console.log("=================================================================\n");
+
   await pool.end();
   process.exit(0);
 }

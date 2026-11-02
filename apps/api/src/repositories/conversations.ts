@@ -140,7 +140,15 @@ export const conversationsRepo = {
           ),
         )
         .limit(1);
-      return rows.length > 0;
+      if (rows.length > 0) return true;
+
+      const [conv] = await tx
+        .select({ kind: conversations.kind, type: conversations.type })
+        .from(conversations)
+        .where(and(eq(conversations.id, conversationId), eq(conversations.company_id, identity.companyId)))
+        .limit(1);
+
+      return !!conv && conv.type === "channel" && (conv.kind === "public" || conv.kind === "company" || !conv.kind);
     });
   },
 
@@ -227,6 +235,17 @@ export const conversationsRepo = {
       const [updated] = await tx
         .update(conversations)
         .set({ is_archived: true, updated_at: new Date() })
+        .where(and(eq(conversations.id, id), eq(conversations.company_id, identity.companyId)))
+        .returning();
+      return updated ?? null;
+    });
+  },
+
+  async unarchiveChannel(identity: RequestIdentity, id: string) {
+    return withTenantTx(identity, async (tx: Db) => {
+      const [updated] = await tx
+        .update(conversations)
+        .set({ is_archived: false, updated_at: new Date() })
         .where(and(eq(conversations.id, id), eq(conversations.company_id, identity.companyId)))
         .returning();
       return updated ?? null;

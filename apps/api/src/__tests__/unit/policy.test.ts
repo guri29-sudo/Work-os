@@ -62,4 +62,18 @@ describe("Policy", () => {
     expect(policy.can(guestIdentity, PERMISSIONS.ACCESS)).toBe(true);
     expect(policy.can(guestIdentity, PERMISSIONS.CHANNEL_CREATE)).toBe(false);
   });
+
+  it("audit access: member without AUDIT_READ gets 403, admin gets 200/allowed", () => {
+    expect(() => {
+      policy.require(guestIdentity, PERMISSIONS.AUDIT_READ);
+    }).toThrow(AuthorizationError);
+
+    const adminWithAudit: RequestIdentity = {
+      ...adminIdentity,
+      permissions: [...adminIdentity.permissions, PERMISSIONS.AUDIT_READ],
+    };
+    expect(() => {
+      policy.require(adminWithAudit, PERMISSIONS.AUDIT_READ);
+    }).not.toThrow();
+  });
 });

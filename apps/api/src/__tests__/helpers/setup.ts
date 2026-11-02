@@ -10,5 +10,11 @@ export async function setup() {
   process.env.JWT_AUDIENCE = "communication-system";
   process.env.CORS_ORIGINS = "http://localhost:5173";
   process.env.WEBHOOK_SIGNING_SECRET = "test_webhook_secret_32chars_min__";
+  process.env.STORAGE_ENDPOINT = "http://localhost:9000";
+  process.env.STORAGE_BUCKET = "communication-attachments";
+  process.env.STORAGE_REGION = "us-east-1";
+  process.env.STORAGE_ACCESS_KEY = "minioadmin";
+  process.env.STORAGE_SECRET_KEY = "minioadmin";
+  process.env.STORAGE_PUBLIC_URL = "http://localhost:9000/communication-attachments";
   process.env.NODE_ENV = "test";
 }

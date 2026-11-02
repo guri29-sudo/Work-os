@@ -10,8 +10,8 @@ function relativeLuminance(rgb: [number, number, number]): number {
   const [r, g, b] = rgb.map((c) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }) as [number, number, number];
+  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
 }
 
 function contrastRatio(hex1: string, hex2: string): number {

@@ -3,6 +3,10 @@ import { db } from "../../db/client.js";
 import { sql } from "drizzle-orm";
 
 export default async function healthRoutes(fastify: FastifyInstance) {
+  fastify.get("/health", (_req, reply) => {
+    void reply.send({ status: "ok", service: "communication-api" });
+  });
+
   fastify.get("/health/live", (_req, reply) => {
     void reply.send({ status: "ok" });
   });

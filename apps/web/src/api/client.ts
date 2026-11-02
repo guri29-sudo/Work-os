@@ -1,4 +1,8 @@
-const API_BASE = "http://localhost:3001";
+export const API_BASE =
+  (import.meta.env.VITE_COMMUNICATION_API_URL as string | undefined) || "";
+
+export const WS_BASE =
+  (import.meta.env.VITE_COMMUNICATION_WS_URL as string | undefined) || "";
 
 export class ApiError extends Error {
   constructor(
@@ -21,7 +25,8 @@ export async function apiRequest<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const url = API_BASE ? `${API_BASE}${endpoint}` : endpoint;
+  const res = await fetch(url, {
     ...options,
     headers,
   });

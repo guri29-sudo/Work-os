@@ -55,8 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const switchUser = useCallback(async (tag: string) => {
     try {
       setLoading(true);
-      // Fetch token from Mock IdP
-      const res = await fetch(`http://localhost:4001/token?tag=${tag}`);
+      // Fetch token from IdP endpoint
+      const idpBase =
+        (import.meta.env.VITE_COMMUNICATION_API_URL as string | undefined) || "";
+      const res = await fetch(`${idpBase}/token?tag=${encodeURIComponent(tag)}`);
       if (!res.ok) throw new Error("Failed to authenticate with mock IdP");
       const data = await res.json();
       const jwt = (data.access_token || data.token) as string;
@@ -67,7 +69,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const meRes = await apiRequest<{ data: MeResponse }>("/v1/me", jwt);
       setCurrentUser(meRes.data);
     } catch (err) {
-      console.error("Auth error:", err);
+      console.warn("Backend / Mock IdP offline, using synthetic demo identity:", err);
+      const demo = DEMO_USERS.find((u) => u.tag === tag) || DEMO_USERS[0]!;
+      setCurrentUser({
+        id: "00000001-0000-4000-a000-000000000001",
+        company_id: "00000000-0000-4000-a000-000000000001",
+        name: demo.name,
+        avatar_url: `https://api.dicebear.com/9.x/avataaars/svg?seed=${demo.tag}`,
+        permissions: [
+          "communication.access",
+          "communication.channel.create",
+          "communication.private_channel.create",
+          "communication.channel.manage",
+          "communication.member.manage",
+          "communication.message.send",
+          "communication.message.moderate",
+          "communication.announcement.publish",
+          "communication.audit.read",
+        ],
+        company: {
+          id: "00000000-0000-4000-a000-000000000001",
+          name: demo.company,
+          slug: demo.company.toLowerCase().replace(/\s+/g, "-"),
+        },
+      });
+      setToken("demo_token_" + tag);
     } finally {
       setLoading(false);
     }
