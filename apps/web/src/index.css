@@ -22,7 +22,7 @@
     --color-accent-hover: #60a5fa;
     --color-bg-app: #0b1324;
     --color-bg-card: #131f37;
-    --color-border: #1e293b;
+    --color-border: #233354;
     --color-text-main: #f8fafc;
     --color-text-muted: #94a3b8;
   }
@@ -45,6 +45,91 @@
     outline: 2px solid #2563eb;
     outline-offset: 2px;
   }
+}
+
+/* High-Contrast Accessible Dark Mode Overrides */
+[data-theme="dark"], .dark, html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .text-slate-900,
+.dark .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+.dark .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .text-slate-700,
+.dark .text-slate-700,
+[data-theme="dark"] .text-slate-600,
+.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .text-slate-500,
+.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .text-slate-400,
+.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* Background cards in dark mode */
+[data-theme="dark"] .bg-white,
+.dark .bg-white {
+  background-color: #131f37 !important;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .bg-slate-50,
+.dark .bg-slate-50,
+[data-theme="dark"] .bg-slate-50\/80,
+.dark .bg-slate-50\/80,
+[data-theme="dark"] .bg-blue-50,
+.dark .bg-blue-50,
+[data-theme="dark"] .bg-blue-50\/40,
+.dark .bg-blue-50\/40,
+[data-theme="dark"] .bg-blue-50\/50,
+.dark .bg-blue-50\/50,
+[data-theme="dark"] .bg-blue-50\/60,
+.dark .bg-blue-50\/60,
+[data-theme="dark"] .bg-blue-50\/70,
+.dark .bg-blue-50\/70,
+[data-theme="dark"] .bg-blue-50\/80,
+.dark .bg-blue-50\/80 {
+  background-color: #182747 !important;
+}
+
+[data-theme="dark"] .border-blue-100,
+.dark .border-blue-100,
+[data-theme="dark"] .border-blue-200,
+.dark .border-blue-200,
+[data-theme="dark"] .border-slate-200,
+.dark .border-slate-200,
+[data-theme="dark"] .border-blue-100\/80,
+.dark .border-blue-100\/80 {
+  border-color: #233354 !important;
+}
+
+[data-theme="dark"] .hover\:bg-blue-50\/60:hover,
+.dark .hover\:bg-blue-50\/60:hover,
+[data-theme="dark"] .hover\:bg-blue-50\/50:hover,
+.dark .hover\:bg-blue-50\/50:hover,
+[data-theme="dark"] .hover\:bg-slate-100:hover,
+.dark .hover\:bg-slate-100:hover {
+  background-color: #1e3158 !important;
+}
+
+[data-theme="dark"] .hover\:border-blue-300:hover,
+.dark .hover\:border-blue-300:hover {
+  border-color: #3b82f6 !important;
+}
+
+[data-theme="dark"] textarea,
+.dark textarea {
+  color: #f8fafc !important;
 }
 
 /* Touch targets: at least 44px */

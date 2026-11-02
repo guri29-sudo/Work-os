@@ -172,7 +172,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#edf3fc] overflow-hidden select-none">
+    <div className="flex flex-col h-screen w-full max-w-[100vw] bg-[var(--color-bg-app)] overflow-hidden select-none">
       <div className="flex-1 overflow-hidden relative">
         <CommunicationApp
           key={currentClaims.sub}

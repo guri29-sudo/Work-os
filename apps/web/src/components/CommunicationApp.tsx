@@ -635,12 +635,12 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       {/* Main Content Viewport */}
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--color-bg-app)] relative">
         {/* Top Header Bar */}
-        <header className="h-14 sm:h-16 px-3 sm:px-6 lg:px-8 bg-[var(--color-bg-app)] border-b border-[var(--color-border)] flex items-center justify-between shrink-0 z-10 gap-2 sm:gap-4">
+        <header className="h-14 sm:h-16 px-2.5 sm:px-6 lg:px-8 bg-[var(--color-bg-app)] border-b border-[var(--color-border)] flex items-center justify-between shrink-0 z-10 gap-2 sm:gap-4">
           {/* Mobile Channels Drawer Toggle Button */}
           <button
             type="button"
             onClick={() => setShowMobileChannelsDrawer(true)}
-            className="md:hidden min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-blue-700 hover:bg-white/80 active:bg-blue-100 transition shrink-0"
+            className="md:hidden min-h-[38px] min-w-[38px] flex items-center justify-center p-1.5 rounded-xl text-slate-600 dark:text-slate-200 hover:text-blue-700 hover:bg-white/80 active:bg-blue-100 transition shrink-0"
             aria-label="Open channels list"
             title="Channels & Messages"
           >
@@ -650,21 +650,21 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
           {/* Omnibox Search bar */}
           <div
             onClick={() => setShowSearchModal(true)}
-            className="flex-1 max-w-md bg-white rounded-xl border border-blue-100 px-3 py-2 flex items-center justify-between text-xs text-slate-400 hover:border-blue-300 hover:shadow-xs transition cursor-pointer shadow-2xs"
+            className="flex-1 max-w-md bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-slate-700 px-3 py-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-300 hover:border-blue-300 hover:shadow-xs transition cursor-pointer shadow-2xs min-w-0"
             role="search"
             aria-label="Search messages, files, and people"
           >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 truncate">
               <Search className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span className="truncate">Search messages, files, people...</span>
+              <span className="truncate">Search messages, files...</span>
             </div>
-            <kbd className="font-mono text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-200 shrink-0">
+            <kbd className="hidden sm:inline font-mono text-[10px] bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-200 dark:border-slate-600 shrink-0">
               ⌘K
             </kbd>
           </div>
 
           {/* Right Header Controls */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0 pr-1">
             {/* Connection Status Badge (hidden on mobile) */}
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-blue-100 px-3 py-1.5 rounded-xl shadow-2xs">
               <span className={`w-2 h-2 rounded-full ${
@@ -689,24 +689,24 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
             </div>
 
             {/* Notification Bell with unread dot */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setShowNotificationsDrawer(!showNotificationsDrawer)}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-blue-700 hover:bg-white transition"
+                className="min-h-[38px] min-w-[38px] flex items-center justify-center p-2 rounded-xl text-slate-500 dark:text-slate-300 hover:text-blue-700 hover:bg-white dark:hover:bg-slate-800 transition"
                 title="Notifications"
                 aria-label="Notifications"
               >
                 <Bell className="w-4 h-4" />
               </button>
               {unreadNotificationsCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-[#edf3fc]" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-[#edf3fc] dark:ring-slate-900" />
               )}
             </div>
 
             {/* Avatar Pill */}
             <div
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs cursor-pointer"
+              className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs cursor-pointer shrink-0 ring-2 ring-white/60 dark:ring-slate-700"
               title={claims.name}
             >
               {userInitials}
