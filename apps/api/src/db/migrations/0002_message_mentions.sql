@@ -1,4 +1,4 @@
-﻿-- Migration 0002: Message Mentions table
+-- Migration 0002: Message Mentions table
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS message_mentions (
@@ -22,6 +22,11 @@ CREATE POLICY company_isolation ON message_mentions
   USING (company_id = current_company_id())
   WITH CHECK (company_id = current_company_id());
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON message_mentions TO app_user;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON message_mentions TO app_user;
+  END IF;
+END $$;
 
 COMMIT;
