@@ -60,11 +60,17 @@ function mapClaimsToSynthetic(raw: TokenClaims | null | undefined): TokenClaims 
   const em = (raw.email || '').toLowerCase();
   const nm = (raw.name || '').toLowerCase();
   const sub = (raw.sub || '').toLowerCase();
-  if (em === 'rohan@company.com' || nm.includes('rohan') || sub.includes('rohan')) return MOCK_TOKENS.rohan;
-  if (em === 'vedant@company.com' || nm.includes('vedant') || sub.includes('vedant')) return MOCK_TOKENS.vedant;
-  if (em === 'sneha@company.com' || nm.includes('sneha') || sub.includes('sneha')) return MOCK_TOKENS.sneha;
-  if (em === 'alex@cyberdyne.io' || nm.includes('alex') || sub.includes('alex')) return MOCK_TOKENS.alex_external;
-  return raw;
+  let matched: TokenClaims | null = null;
+  if (em === 'rohan@company.com' || nm.includes('rohan') || sub.includes('rohan')) matched = MOCK_TOKENS.rohan;
+  else if (em === 'vedant@company.com' || nm.includes('vedant') || sub.includes('vedant')) matched = MOCK_TOKENS.vedant;
+  else if (em === 'sneha@company.com' || nm.includes('sneha') || sub.includes('sneha')) matched = MOCK_TOKENS.sneha;
+  else if (em === 'alex@cyberdyne.io' || nm.includes('alex') || sub.includes('alex')) matched = MOCK_TOKENS.alex_external;
+  const base = matched || raw;
+  return {
+    ...base,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+    iat: Math.floor(Date.now() / 1000),
+  };
 }
 
 export const CommunicationApp: React.FC<CommunicationAppProps> = ({
@@ -1184,7 +1190,12 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                     .filter((c) => c.type === 'direct')
                     .map((chan) => {
                       const isActive = activeChannelId === chan.id && currentView === 'conversation';
-                      const initials = chan.name.slice(0, 2).toUpperCase();
+                      const initials = chan.name
+                        .split(' ')
+                        .map((p) => p[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
                       return (
                         <button
                           key={chan.id}

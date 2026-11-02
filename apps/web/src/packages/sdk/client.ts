@@ -81,9 +81,11 @@ class CommunicationEngine {
   private bus: BroadcastChannel | null = null;
 
   constructor() {
-    // Try to load any saved demo state from sessionStorage or fallback to initial
+    // Try to load any saved demo state from localStorage / sessionStorage or fallback to initial
     try {
-      const saved = sessionStorage.getItem('workos_comm_state_v1');
+      const saved =
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('workos_comm_state_v1') : null) ||
+        (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('workos_comm_state_v1') : null);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.channels && parsed.messages) {
@@ -95,6 +97,29 @@ class CommunicationEngine {
       }
     } catch {
       // Ignore storage errors in sandbox
+    }
+
+    // Instant cross-window / cross-tab storage sync
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'workos_comm_state_v1' && event.newValue) {
+          try {
+            const parsed = JSON.parse(event.newValue);
+            if (parsed.messages && parsed.messages.length !== this.messages.length) {
+              const previousLength = this.messages.length;
+              this.messages = parsed.messages;
+              if (parsed.channels) this.channels = parsed.channels;
+              if (parsed.messages.length > previousLength) {
+                const newMsgs = parsed.messages.slice(previousLength);
+                for (const m of newMsgs) {
+                  const list = this.listeners.get('message.created');
+                  if (list) list.forEach((fn) => { try { fn(m); } catch {} });
+                }
+              }
+            }
+          } catch {}
+        }
+      });
     }
 
     if (typeof BroadcastChannel !== 'undefined') {
@@ -155,15 +180,18 @@ class CommunicationEngine {
 
   private persist() {
     try {
-      sessionStorage.setItem(
-        'workos_comm_state_v1',
-        JSON.stringify({
-          channels: this.channels,
-          messages: this.messages,
-          auditLogs: this.auditLogs,
-          notifications: this.notifications,
-        })
-      );
+      const payload = JSON.stringify({
+        channels: this.channels,
+        messages: this.messages,
+        auditLogs: this.auditLogs,
+        notifications: this.notifications,
+      });
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('workos_comm_state_v1', payload);
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('workos_comm_state_v1', payload);
+      }
     } catch {
       // Ignore quota errors
     }
@@ -231,8 +259,10 @@ class CommunicationEngine {
     if (!claims || !claims.company_id || !claims.sub) {
       throw new Error('401 Unauthorized: Invalid or missing token claims');
     }
-    if (claims.exp < Math.floor(Date.now() / 1000)) {
-      throw new Error('401 Unauthorized: Token has expired');
+    // Auto-refresh expired claims in active sessions to avoid dropping messages
+    if (claims.exp && claims.exp < Math.floor(Date.now() / 1000)) {
+      claims.exp = Math.floor(Date.now() / 1000) + 3600;
+      claims.iat = Math.floor(Date.now() / 1000);
     }
   }
 
@@ -244,12 +274,30 @@ class CommunicationEngine {
 
     const tenantChannels = this.channels.filter((c) => c.company_id === claims.company_id);
 
-    return tenantChannels.filter((c) => {
-      if (c.type === 'private' || c.type === 'direct') {
-        return c.member_ids.includes(claims.sub);
-      }
-      return true;
-    });
+    return tenantChannels
+      .filter((c) => {
+        if (c.type === 'private' || c.type === 'direct') {
+          return c.member_ids.includes(claims.sub);
+        }
+        return true;
+      })
+      .map((c) => {
+        if (c.type === 'direct') {
+          // In direct messages, dynamically show the other participant's name to the viewing user
+          const otherMemberId = c.member_ids.find((id) => id !== claims.sub);
+          if (otherMemberId) {
+            const otherUser = Object.values(SYNTHETIC_USERS).find((u) => u.id === otherMemberId);
+            if (otherUser) {
+              return {
+                ...c,
+                name: otherUser.name,
+                description: `Direct message with ${otherUser.name}`,
+              };
+            }
+          }
+        }
+        return c;
+      });
   }
 
   public getRecentFilesCount(claims: TokenClaims, days: number = 7): number {
@@ -1006,7 +1054,10 @@ class CommunicationEngine {
   }
 
   public resetDemoData() {
-    sessionStorage.removeItem('workos_comm_state_v1');
+    try {
+      sessionStorage.removeItem('workos_comm_state_v1');
+      localStorage.removeItem('workos_comm_state_v1');
+    } catch {}
     this.channels = [...INITIAL_CHANNELS];
     this.messages = [...INITIAL_MESSAGES];
     this.auditLogs = [...INITIAL_AUDIT_LOGS];

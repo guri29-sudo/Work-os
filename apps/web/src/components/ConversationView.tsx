@@ -114,6 +114,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
+  const channelInitials = channel.name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   const canManageChannel = claims.permissions.includes('communication.channel.manage');
   const canSend = claims.permissions.includes('communication.message.send');
   const canModerate = claims.permissions.includes('communication.message.moderate');
@@ -317,7 +324,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           >
             <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-700 dark:text-blue-300 shrink-0 font-bold border border-blue-200 dark:border-slate-700">
               {channel.type === 'direct' ? (
-                channel.name.slice(0, 2).toUpperCase()
+                channelInitials
               ) : channel.type === 'private' ? (
                 <Lock className="w-4 h-4 text-blue-700 dark:text-blue-300" />
               ) : (
@@ -499,10 +506,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         {/* Channel Welcome Header */}
         <div className="py-6 border-b border-blue-100 text-left">
           <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl mb-3 shadow-md shadow-blue-500/20">
-            {channel.type === 'direct' ? channel.name.slice(0, 2).toUpperCase() : '#'}
+            {channel.type === 'direct' ? channelInitials : '#'}
           </div>
-          <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Welcome to #{channel.name}
+          <h3 className="text-2xl font-extrabold text-[var(--color-text-main)] tracking-tight">
+            {channel.type === 'direct' ? channel.name : `Welcome to #${channel.name}`}
           </h3>
           <p className="text-sm text-slate-500 mt-1 max-w-xl">
             {channel.description ||
@@ -925,6 +932,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
             placeholder={
               isAnnouncementRestricted
                 ? 'Only authorized announcement authors may post in this channel'
+                : channel.type === 'direct'
+                ? `Message ${channel.name}... (Press Enter to send)`
                 : `Message #${channel.name}... (Press Enter to send, drag & drop files here)`
             }
             rows={2}

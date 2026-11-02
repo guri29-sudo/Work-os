@@ -52,7 +52,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const totalFiles = communicationEngine.getRecentFilesCount(claims, 7);
 
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-6 sm:space-y-8 animate-fadeIn overflow-y-auto">
+    <div className="flex-1 p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-6 sm:space-y-8 animate-fadeIn overflow-y-auto pb-28 md:pb-10">
       {/* Header Greeting Section (Blue Shade Theme) */}
       <div>
         <span className="text-xs font-bold uppercase tracking-wider text-blue-500 block mb-1">

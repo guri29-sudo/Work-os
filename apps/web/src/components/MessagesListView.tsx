@@ -111,7 +111,7 @@ export const MessagesListView: React.FC<MessagesListViewProps> = ({
       </div>
 
       {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-[var(--color-border)]">
+      <div className="flex-1 overflow-y-auto divide-y divide-[var(--color-border)] pb-28 md:pb-6">
         {filtered.length === 0 ? (
           <div className="p-12 text-center text-xs text-[var(--color-text-muted)]">
             No conversations found. Start a new conversation with the button above!
@@ -120,7 +120,12 @@ export const MessagesListView: React.FC<MessagesListViewProps> = ({
           filtered.map((chan) => {
             const isDirect = chan.type === 'direct';
             const initials = isDirect
-              ? chan.name.slice(0, 2).toUpperCase()
+              ? chan.name
+                  .split(' ')
+                  .map((p) => p[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2)
               : chan.name.slice(0, 2).toUpperCase();
             const unread = chan.unread_count || 0;
             const isSelected = chan.id === activeChannelId;

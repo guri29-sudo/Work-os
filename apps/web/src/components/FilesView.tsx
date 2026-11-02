@@ -130,7 +130,7 @@ export const FilesView: React.FC<FilesViewProps> = ({ claims, channels }) => {
       </div>
 
       {/* Files Table / List */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 md:pb-6">
         {filteredFiles.length === 0 ? (
           <div className="py-16 text-center text-[var(--color-text-muted)] space-y-3">
             <FolderOpen className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
