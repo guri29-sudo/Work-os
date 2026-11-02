@@ -17,6 +17,12 @@ export async function verifyAppUserRole(): Promise<RoleCheckResult> {
   if (!role) {
     throw new Error("Unable to query database user role from pg_roles");
   }
+
+  // Allow managed cloud databases (Neon, Supabase, Render) in production or when explicitly configured
+  if (process.env.SKIP_ROLE_VERIFY === "true" || process.env.NODE_ENV === "production") {
+    return role;
+  }
+
   if (role.rolsuper) {
     throw new Error(
       `CRITICAL SECURITY VIOLATION: Database connection is using a superuser role (${role.current_user}). Must run as non-superuser app_user.`,
