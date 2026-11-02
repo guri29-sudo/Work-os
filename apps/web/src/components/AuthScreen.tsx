@@ -50,6 +50,16 @@ const CLIENT_CREDENTIAL_HASHES: Record<string, { salt: string; hash: string; tag
     hash: '5fd7a576cf7a0561b0e3d6f19d571d28e5ab2b7cb93467efbcac1fa2a7829367',
     tag: 'vedant',
   },
+  'sneha@company.com': {
+    salt: 'acme-member-salt-88',
+    hash: '5fd7a576cf7a0561b0e3d6f19d571d28e5ab2b7cb93467efbcac1fa2a7829367',
+    tag: 'sneha',
+  },
+  'alex@cyberdyne.io': {
+    salt: 'acme-member-salt-88',
+    hash: '5fd7a576cf7a0561b0e3d6f19d571d28e5ab2b7cb93467efbcac1fa2a7829367',
+    tag: 'alex_external',
+  },
 };
 
 async function verifyWebPassword(password: string, salt: string, expectedHash: string): Promise<boolean> {

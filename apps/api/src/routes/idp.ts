@@ -5,7 +5,8 @@
 import type { FastifyInstance } from "fastify";
 import { generateKeyPair, exportJWK, SignJWT } from "jose";
 import { randomUUID, pbkdf2Sync, timingSafeEqual } from "node:crypto";
-import { ALL_USERS, findUserById } from "@cs/test-fixtures";
+import { ALL_USERS, findUserById, COMPANY_ACME, COMPANY_GLOBEX } from "@cs/test-fixtures";
+import { ROLE_DEFAULTS } from "@cs/contracts";
 import { env } from "../env.js";
 
 interface KeyPairEntry {
@@ -53,6 +54,16 @@ const DEMO_CREDENTIALS: Record<string, { hash: string; salt: string; tag: string
     hash: pbkdf2Sync("MemberPassword123!", "acme-member-salt-88", 10000, 32, "sha256").toString("hex"),
     tag: "acme-member",
   },
+  "sneha@company.com": {
+    salt: "acme-member-salt-88",
+    hash: pbkdf2Sync("MemberPassword123!", "acme-member-salt-88", 10000, 32, "sha256").toString("hex"),
+    tag: "sneha",
+  },
+  "alex@cyberdyne.io": {
+    salt: "acme-member-salt-88",
+    hash: pbkdf2Sync("MemberPassword123!", "acme-member-salt-88", 10000, 32, "sha256").toString("hex"),
+    tag: "alex_external",
+  },
 };
 
 function verifyPassword(email: string, passwordAttempt: string): boolean {
@@ -90,7 +101,50 @@ export default async function idpRoutes(fastify: FastifyInstance) {
         }
       }
 
-      let user = ALL_USERS.find(
+      const SEED_USER_MAP: Record<string, any> = {
+        "rohan@company.com": {
+          id: "00000001-0000-4000-a000-000000000002",
+          company_id: COMPANY_ACME.id,
+          name: "Rohan Deshmukh",
+          email: "rohan@company.com",
+          avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=rohan-deshmukh",
+          permissions: [...ROLE_DEFAULTS.admin],
+          department_ids: [COMPANY_ACME.department_ids[0]!.id],
+          project_ids: [COMPANY_ACME.project_ids[0]!.id],
+        },
+        "vedant@company.com": {
+          id: "00000001-0000-4000-a000-000000000003",
+          company_id: COMPANY_ACME.id,
+          name: "Vedant Kulkarni",
+          email: "vedant@company.com",
+          avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=vedant-kulkarni",
+          permissions: ROLE_DEFAULTS.member.filter((p) => p !== "communication.audit.read"),
+          department_ids: [COMPANY_ACME.department_ids[0]!.id],
+          project_ids: [COMPANY_ACME.project_ids[0]!.id],
+        },
+        "sneha@company.com": {
+          id: "00000001-0000-4000-a000-000000000004",
+          company_id: COMPANY_ACME.id,
+          name: "Sneha Patil",
+          email: "sneha@company.com",
+          avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=sneha-patil",
+          permissions: ROLE_DEFAULTS.member.filter((p) => p !== "communication.audit.read"),
+          department_ids: [COMPANY_ACME.department_ids[0]!.id],
+          project_ids: [COMPANY_ACME.project_ids[0]!.id],
+        },
+        "alex@cyberdyne.io": {
+          id: "00000002-0000-4000-b000-000000000006",
+          company_id: COMPANY_GLOBEX.id,
+          name: "Alex Vance",
+          email: "alex@cyberdyne.io",
+          avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=alex-vance",
+          permissions: ROLE_DEFAULTS.member.filter((p) => p !== "communication.audit.read"),
+          department_ids: [COMPANY_GLOBEX.department_ids[0]!.id],
+          project_ids: [COMPANY_GLOBEX.project_ids[0]!.id],
+        },
+      };
+
+      let user = (email && SEED_USER_MAP[email.toLowerCase()]) || ALL_USERS.find(
         (u) =>
           (userId && u.id === userId) ||
           (tag && u.tag === tag) ||
