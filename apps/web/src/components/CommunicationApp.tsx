@@ -270,6 +270,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   const totalUnread = channels.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const companyDisplayName =
     claims.company_id === 'comp_external_2' ? 'Cyberdyne Systems Corp' : 'WorkOS Enterprise Labs';
+  const companyName = companyDisplayName;
 
   return (
     <div className="flex h-screen w-full bg-[var(--color-bg-app)] overflow-hidden select-none font-sans">

@@ -17,10 +17,38 @@ const AcceptanceDevPage = import.meta.env.DEV ? lazy(() => import('./dev/Accepta
 const ContractsDevPage = import.meta.env.DEV ? lazy(() => import('./dev/ContractsDevPage')) : null;
 const EmbeddedDevPage = import.meta.env.DEV ? lazy(() => import('./dev/EmbeddedDevPage')) : null;
 
+const SESSION_CLAIMS_KEY = 'workos_comm_session_claims';
+const SESSION_TOKEN_KEY = 'workos_comm_session_token';
+
 export default function App() {
-  const [currentClaims, setCurrentClaims] = useState<TokenClaims | null>(null);
+  const [currentClaims, setCurrentClaims] = useState<TokenClaims | null>(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_CLAIMS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.sub && (!parsed.exp || parsed.exp * 1000 > Date.now())) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore storage error
+    }
+    return null;
+  });
   const tokenRef = useRef<string | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedTok = localStorage.getItem(SESSION_TOKEN_KEY);
+      if (savedTok) tokenRef.current = savedTok;
+    } catch {
+      // ignore
+    }
+    if (currentClaims) {
+      scheduleRefresh(currentClaims);
+    }
+  }, []);
 
   const [hostOpenedObject, setHostOpenedObject] = useState<WorkOSObjectRef | null>(null);
   const [hostTaskContext, setHostTaskContext] = useState<{
@@ -76,13 +104,26 @@ export default function App() {
 
   const handleSignIn = useCallback((claims: TokenClaims, token?: string) => {
     setCurrentClaims(claims);
-    tokenRef.current = token || claims.sub;
+    const tok = token || claims.sub;
+    tokenRef.current = tok;
+    try {
+      localStorage.setItem(SESSION_CLAIMS_KEY, JSON.stringify(claims));
+      localStorage.setItem(SESSION_TOKEN_KEY, tok);
+    } catch {
+      // ignore
+    }
     scheduleRefresh(claims);
   }, [scheduleRefresh]);
 
   const handleSignOut = useCallback(() => {
     setCurrentClaims(null);
     tokenRef.current = null;
+    try {
+      localStorage.removeItem(SESSION_CLAIMS_KEY);
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+    } catch {
+      // ignore
+    }
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
   }, []);
 
@@ -91,8 +132,18 @@ export default function App() {
   }, [handleSignOut]);
 
   const getAccessToken = useCallback(async (): Promise<string> => {
-    return tokenRef.current || '';
-  }, []);
+    if (tokenRef.current) return tokenRef.current;
+    try {
+      const saved = localStorage.getItem(SESSION_TOKEN_KEY);
+      if (saved) {
+        tokenRef.current = saved;
+        return saved;
+      }
+    } catch {
+      // ignore
+    }
+    return currentClaims?.sub || '';
+  }, [currentClaims]);
 
   // Cleanup refresh timer on unmount
   useEffect(() => {
