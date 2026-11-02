@@ -22,6 +22,8 @@ import {
   Moon,
   Sun,
   User as UserIcon,
+  Menu,
+  Lock,
 } from 'lucide-react';
 import {
   Channel,
@@ -100,6 +102,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showMobileChannelsDrawer, setShowMobileChannelsDrawer] = useState(false);
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connected');
 
@@ -632,6 +635,17 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--color-bg-app)] relative">
         {/* Top Header Bar */}
         <header className="h-14 sm:h-16 px-3 sm:px-6 lg:px-8 bg-[var(--color-bg-app)] border-b border-[var(--color-border)] flex items-center justify-between shrink-0 z-10 gap-2 sm:gap-4">
+          {/* Mobile Channels Drawer Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowMobileChannelsDrawer(true)}
+            className="md:hidden min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-blue-700 hover:bg-white/80 active:bg-blue-100 transition shrink-0"
+            aria-label="Open channels list"
+            title="Channels & Messages"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           {/* Omnibox Search bar */}
           <div
             onClick={() => setShowSearchModal(true)}
@@ -738,7 +752,11 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
               claims={claims}
               channel={activeChannel}
               messages={messages}
-              onBack={() => setCurrentView('home')}
+              onBack={() => {
+                setCurrentView('messages');
+                setShowMobileChannelsDrawer(true);
+              }}
+              onOpenChannelList={() => setShowMobileChannelsDrawer(true)}
               onOpenThread={(msg) => setActiveThreadMessage(msg)}
               onOpenObject={handleOpenObject}
               onCreateTask={handleCreateTask}
@@ -827,11 +845,10 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
 
             <button
               onClick={() => {
-                const firstChan = channels.find((c) => c.type !== 'direct');
-                if (firstChan) handleSelectChannel(firstChan.id);
+                setShowMobileChannelsDrawer(true);
               }}
               className={`touch-target flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition ${
-                activeChannelId && activeChannel?.type !== 'direct'
+                showMobileChannelsDrawer || (activeChannelId && activeChannel?.type !== 'direct')
                   ? 'text-blue-400 font-bold'
                   : 'text-blue-200/70 hover:text-white'
               }`}
@@ -1045,6 +1062,184 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
           claims={claims}
           onClose={() => setShowAuditModal(false)}
         />
+      )}
+
+      {/* Mobile Slide-Over Channels & DMs Drawer */}
+      {showMobileChannelsDrawer && (
+        <div className="fixed inset-0 z-50 md:hidden flex animate-fadeIn">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowMobileChannelsDrawer(false)}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Panel */}
+          <div className="relative w-[85vw] max-w-xs bg-[#0c1527] text-white h-full flex flex-col shadow-2xl z-10 animate-slideRight">
+            {/* Drawer Header */}
+            <div className="p-4 border-b border-blue-900/60 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <WorkOSLogo theme="dark" size="sm" />
+                <div className="truncate">
+                  <div className="text-xs font-bold text-white truncate">{companyName}</div>
+                  <div className="text-[10px] text-blue-300 truncate">{claims.name}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileChannelsDrawer(false)}
+                className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl text-blue-300 hover:text-white hover:bg-white/10 transition"
+                aria-label="Close channels drawer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Action: New Message */}
+            <div className="p-3 border-b border-blue-900/40">
+              <button
+                onClick={() => {
+                  setShowMobileChannelsDrawer(false);
+                  setShowNewMessageModal(true);
+                }}
+                className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New message</span>
+              </button>
+            </div>
+
+            {/* Drawer Content: Scrollable list of Channels & DMs */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+              {/* Channels Section */}
+              <div>
+                <div className="flex items-center justify-between px-2 mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300/70">
+                    CHANNELS ({channels.filter((c) => c.type !== 'direct').length})
+                  </span>
+                  {claims.permissions.includes('communication.channel.create') && (
+                    <button
+                      onClick={() => {
+                        setShowMobileChannelsDrawer(false);
+                        setShowNewChannelModal(true);
+                      }}
+                      className="p-1 text-blue-300 hover:text-white hover:bg-white/10 rounded transition"
+                      title="Create channel"
+                      aria-label="Create channel"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  {channels
+                    .filter((c) => c.type !== 'direct')
+                    .map((chan) => {
+                      const isActive = activeChannelId === chan.id && currentView === 'conversation';
+                      return (
+                        <button
+                          key={chan.id}
+                          onClick={() => {
+                            handleSelectChannel(chan.id);
+                            setShowMobileChannelsDrawer(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition text-left group min-h-[40px] ${
+                            isActive
+                              ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                              : 'text-blue-200/80 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 truncate">
+                            {chan.type === 'private' ? (
+                              <Lock className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                            ) : (
+                              <Hash className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                            )}
+                            <span className="truncate">{chan.name}</span>
+                          </div>
+                          {Boolean(chan.unread_count) && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-white text-blue-900 font-mono text-[10px] font-bold">
+                              {chan.unread_count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Direct Messages Section */}
+              <div>
+                <div className="px-2 mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300/70">
+                    DIRECT MESSAGES ({channels.filter((c) => c.type === 'direct').length})
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  {channels
+                    .filter((c) => c.type === 'direct')
+                    .map((chan) => {
+                      const isActive = activeChannelId === chan.id && currentView === 'conversation';
+                      const initials = chan.name.slice(0, 2).toUpperCase();
+                      return (
+                        <button
+                          key={chan.id}
+                          onClick={() => {
+                            handleSelectChannel(chan.id);
+                            setShowMobileChannelsDrawer(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition text-left group min-h-[40px] ${
+                            isActive
+                              ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                              : 'text-blue-200/80 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 truncate">
+                            <div className="w-6 h-6 rounded-full bg-blue-500/30 text-blue-200 flex items-center justify-center font-bold text-[10px] shrink-0 border border-blue-400/30">
+                              {initials}
+                            </div>
+                            <span className="truncate">{chan.name}</span>
+                          </div>
+                          {Boolean(chan.unread_count) && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-white text-blue-900 font-mono text-[10px] font-bold">
+                              {chan.unread_count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Footer with current user info */}
+            <div className="p-3 border-t border-blue-900/60 bg-[#091322] flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                  {userInitials[0]}
+                </div>
+                <div className="truncate">
+                  <div className="text-xs font-semibold text-white truncate">{claims.name}</div>
+                  <div className="text-[10px] text-blue-300 truncate">{claims.email}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileChannelsDrawer(false);
+                  onSignOut?.();
+                }}
+                className="p-1.5 text-blue-300 hover:text-white hover:bg-white/10 rounded-lg transition"
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -32,6 +32,7 @@ import {
   UploadCloud,
   Check,
   ArrowLeft,
+  ChevronDown,
 } from 'lucide-react';
 import {
   Attachment,
@@ -54,6 +55,7 @@ interface ConversationViewProps {
   channel: Channel;
   messages: Message[];
   onBack?: () => void;
+  onOpenChannelList?: () => void;
   onOpenThread: (message: Message) => void;
   onOpenObject: (obj: WorkOSObjectRef) => void;
   onCreateTask: (context: { messageId: string; content: string; authorName: string }) => void;
@@ -80,6 +82,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   channel,
   messages,
   onBack,
+  onOpenChannelList,
   onOpenThread,
   onOpenObject,
   onCreateTask,
@@ -307,34 +310,43 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-700 dark:text-blue-300 shrink-0 font-bold border border-blue-200 dark:border-slate-700">
-            {channel.type === 'direct' ? (
-              channel.name.slice(0, 2).toUpperCase()
-            ) : channel.type === 'private' ? (
-              <Lock className="w-4 h-4 text-blue-700 dark:text-blue-300" />
-            ) : (
-              <Hash className="w-4 h-4 text-blue-700 dark:text-blue-300" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-[var(--color-text-main)] truncate tracking-tight">
-                {channel.name}
-              </h2>
-              {channel.is_archived && (
-                <span className="text-[10px] font-medium bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
-                  Archived
-                </span>
-              )}
-              {channel.announcement_only && (
-                <span className="text-[10px] font-medium bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-md">
-                  Announcements Only
-                </span>
+          <div
+            onClick={onOpenChannelList}
+            className={`flex items-center gap-2 sm:gap-3 min-w-0 ${onOpenChannelList ? 'cursor-pointer hover:opacity-85 transition' : ''}`}
+            title={onOpenChannelList ? 'Switch channel' : undefined}
+          >
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-700 dark:text-blue-300 shrink-0 font-bold border border-blue-200 dark:border-slate-700">
+              {channel.type === 'direct' ? (
+                channel.name.slice(0, 2).toUpperCase()
+              ) : channel.type === 'private' ? (
+                <Lock className="w-4 h-4 text-blue-700 dark:text-blue-300" />
+              ) : (
+                <Hash className="w-4 h-4 text-blue-700 dark:text-blue-300" />
               )}
             </div>
-            <p className="text-xs text-[var(--color-text-muted)] truncate max-w-xl">
-              {channel.topic || channel.description || `${channel.member_ids.length} members`}
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-base font-bold text-[var(--color-text-main)] truncate tracking-tight">
+                  {channel.name}
+                </h2>
+                {onOpenChannelList && (
+                  <ChevronDown className="w-4 h-4 text-slate-400 md:hidden shrink-0" />
+                )}
+                {channel.is_archived && (
+                  <span className="text-[10px] font-medium bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
+                    Archived
+                  </span>
+                )}
+                {channel.announcement_only && (
+                  <span className="text-[10px] font-medium bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-md">
+                    Announcements Only
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[var(--color-text-muted)] truncate max-w-xl">
+                {channel.topic || channel.description || `${channel.member_ids.length} members`}
+              </p>
+            </div>
           </div>
         </div>
 
