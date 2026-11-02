@@ -754,8 +754,9 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
               channel={activeChannel}
               messages={messages}
               onBack={() => {
-                setCurrentView('messages');
-                setShowMobileChannelsDrawer(true);
+                setCurrentView('home');
+                setShowMobileChannelsDrawer(false);
+                setActiveThreadMessage(null);
               }}
               onOpenChannelList={() => setShowMobileChannelsDrawer(true)}
               onOpenThread={(msg) => setActiveThreadMessage(msg)}
