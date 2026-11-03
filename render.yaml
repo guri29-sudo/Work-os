@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: workos-communication-api
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: pnpm install && pnpm --filter @cs/contracts build && pnpm --filter @cs/test-fixtures build && pnpm --filter @cs/api build
+    startCommand: pnpm --filter @cs/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: JWT_ISSUER
+        sync: false
+      - key: JWKS_URL
+        sync: false
+      - key: JWT_AUDIENCE
+        value: communication-system
+      - key: WEBHOOK_SIGNING_SECRET
+        generateValue: true
+      - key: RATE_LIMIT_MAX
+        value: 200
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 60000
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+      - key: STORAGE_BUCKET
+        value: cs-attachments
+      - key: STORAGE_REGION
+        value: us-east-1
+

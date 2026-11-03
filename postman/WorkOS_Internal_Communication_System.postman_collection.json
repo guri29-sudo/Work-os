@@ -1,0 +1,413 @@
+{
+  "info": {
+    "name": "WorkOS Internal Communication System API",
+    "description": "Production Postman collection for the WorkOS Internal Communication System. Includes automated JWT acquisition, PostgreSQL-backed channels and messages, and live HMAC-SHA256 Webhooks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Authentication & Token Exchange",
+      "item": [
+        {
+          "name": "1. Obtain JWT from Mock IdP (Auto-Stores Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.environment.set('token', jsonData.access_token);",
+                  "    pm.collectionVariables.set('token', jsonData.access_token);",
+                  "    console.log('JWT Token successfully stored to environment variable: token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{idpUrl}}/token?tag=acme-owner",
+              "host": ["{{idpUrl}}"],
+              "path": ["token"],
+              "query": [
+                {
+                  "key": "tag",
+                  "value": "acme-owner",
+                  "description": "Synthetic persona: acme-owner, acme-admin, acme-member, acme-guest, globex-owner"
+                }
+              ]
+            },
+            "description": "Issues a valid RS256 JWT from the running Mock IdP service. The Test script automatically saves the token to the collection variable {{token}}."
+          }
+        },
+        {
+          "name": "2. Verify Identity (Get Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Health & Database Status",
+      "item": [
+        {
+          "name": "Check Liveness (/health/live)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "live"]
+            }
+          }
+        },
+        {
+          "name": "Check PostgreSQL Readiness (/health/ready)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "ready"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Webhooks & Real-Time Delivery",
+      "item": [
+        {
+          "name": "1. Trigger Test Webhook (HMAC-SHA256 Signed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.delivery && res.delivery.header) {",
+                  "    pm.collectionVariables.set('lastWebhookHeader', res.delivery.header);",
+                  "    console.log('Saved WorkOS-Signature header:', res.delivery.header);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"message.created\",\n  \"channel_id\": \"chn_engineering\",\n  \"content\": \"Sprint 42 planning finalized. Deployment approved.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "webhooks", "test"]
+            },
+            "description": "Fires a live webhook test, generates an HMAC-SHA256 signature in format 't=...,v1=...', and returns full delivery output."
+          }
+        },
+        {
+          "name": "2. Receive Webhook & Verify Signature",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "WorkOS-Signature",
+                "value": "{{lastWebhookHeader}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"message.created\",\n  \"channel_id\": \"chn_engineering\",\n  \"message_id\": \"msg_postman_test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/receiver",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "webhooks", "receiver"]
+            },
+            "description": "Simulates a webhook listener receiving an event signed with WorkOS-Signature."
+          }
+        },
+        {
+          "name": "3. List Webhook Endpoints",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "webhooks"]
+            }
+          }
+        },
+        {
+          "name": "4. Register New Webhook Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://api.workos.com/v1/communication/events\",\n  \"events\": [\"message.created\", \"mention.created\", \"channel.created\", \"thread.reply_created\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "webhooks"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Channels",
+      "item": [
+        {
+          "name": "List Channels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "channels"]
+            }
+          }
+        },
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"project-artemis\",\n  \"kind\": \"project\",\n  \"topic\": \"Artemis Lunar Launch Coordination\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "channels"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Messages & Threads",
+      "item": [
+        {
+          "name": "Get Channel Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels/chn_engineering/messages?limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "channels", "chn_engineering", "messages"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Message (Idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello team, Sprint 42 planning is live!\",\n  \"client_msg_id\": \"postman_msg_001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/channels/chn_engineering/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "channels", "chn_engineering", "messages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Attachments & Direct Storage",
+      "item": [
+        {
+          "name": "Presign Upload (SigV4)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"architecture-specs.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"size_bytes\": 1048576\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/attachments/presign-upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "attachments", "presign-upload"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Audit Log & Search",
+      "item": [
+        {
+          "name": "Query Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/audit?limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "audit"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?q=planning",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "planning"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "idpUrl",
+      "value": "http://localhost:4001",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lastWebhookHeader",
+      "value": "t=1793125067,v1=68abaea14ecc033f6d0400df4657de59ad35b3ab1d5fee7ddcd03eee450d3fff",
+      "type": "string"
+    }
+  ]
+}

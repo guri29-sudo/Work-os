@@ -1,0 +1,62 @@
+{
+  "name": "communication-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WorkOS Internal Communication System - standalone multi-tenant messaging",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "build": "turbo run build",
+    "build:web": "pnpm --filter @cs/web build",
+    "build:api": "pnpm --filter @cs/api build",
+    "dev": "turbo run dev --parallel",
+    "dev:frontend": "pnpm --filter @cs/web dev",
+    "dev:backend": "pnpm --filter @cs/api dev",
+    "dev:idp": "pnpm --filter @cs/mock-idp dev",
+    "dev:all": "docker compose -f infra/docker-compose.yml up -d postgres minio && turbo run dev --parallel",
+    "db:migrate": "pnpm --filter @cs/api db:migrate",
+    "db:seed": "pnpm --filter @cs/api db:seed",
+    "seed": "pnpm db:seed",
+    "db:setup": "pnpm db:migrate && pnpm db:seed",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
+    "clean": "turbo run clean && rimraf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml,css}\"",
+    "prepare": "node -e \"try { require('child_process').execSync('husky', { stdio: 'ignore' }) } catch(e) {}\""
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@eslint/js": "10.0.1",
+    "@typescript-eslint/eslint-plugin": "8.72.0",
+    "@typescript-eslint/parser": "8.72.0",
+    "eslint": "10.13.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "^17.13.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "rimraf": "6.1.3",
+    "turbo": "2.11.10",
+    "typescript": "5.7.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
+  },
+  "type": "module"
+}

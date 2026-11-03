@@ -1,0 +1,29 @@
+{
+  "name": "@cs/mock-idp",
+  "version": "0.1.0",
+  "description": "Mock WorkOS Identity Provider - dev only. Issues JWTs and serves JWKS.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "dev:ts": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src/",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@cs/contracts": "workspace:*",
+    "@cs/test-fixtures": "workspace:*",
+    "jose": "6.2.13",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "rimraf": "6.1.3",
+    "tsx": "4.23.15",
+    "typescript": "5.7.3"
+  }
+}
+

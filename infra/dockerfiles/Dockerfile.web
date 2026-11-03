@@ -1,0 +1,5 @@
+# Placeholder - fully implemented in Stage 3
+FROM node:22.12.0-alpine
+WORKDIR /app
+COPY apps/web/package.json ./
+RUN echo "Web Docker image - built in Stage 3"

@@ -1,0 +1,58 @@
+# Environment files - NEVER commit real secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p8
+*.pfx
+*.cert
+*.crt
+*.pkcs12
+
+# Node
+node_modules/
+dist/
+build/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test output
+coverage/
+test-results/
+playwright-report/
+screenshots/
+apps/screenshots/
+blob-report/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+
+# MinIO / S3 local data
+infra/minio-data/
+
+# Postgres local data
+infra/postgres-data/
+
+# Generated
+packages/contracts/dist/
+packages/sdk/dist/
+packages/ui/dist/
+apps/api/dist/
+apps/web/dist/
+docs/openapi.json

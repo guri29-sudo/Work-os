@@ -1,0 +1,38 @@
+FROM node:22.12.0-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+
+FROM base AS deps
+WORKDIR /app
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/test-fixtures/package.json ./packages/test-fixtures/
+COPY apps/mock-idp/package.json ./apps/mock-idp/
+RUN pnpm install --frozen-lockfile
+
+FROM base AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
+COPY --from=deps /app/packages/test-fixtures/node_modules ./packages/test-fixtures/node_modules
+COPY --from=deps /app/apps/mock-idp/node_modules ./apps/mock-idp/node_modules
+COPY tsconfig.base.json ./
+COPY packages/contracts ./packages/contracts
+COPY packages/test-fixtures ./packages/test-fixtures
+COPY apps/mock-idp ./apps/mock-idp
+RUN pnpm --filter @cs/contracts build && \
+    pnpm --filter @cs/test-fixtures build && \
+    pnpm --filter @cs/mock-idp build
+
+FROM node:22.12.0-alpine AS runner
+RUN addgroup -S cs && adduser -S cs -G cs
+WORKDIR /app
+COPY --from=build --chown=cs:cs /app/packages/contracts/dist ./packages/contracts/dist
+COPY --from=build --chown=cs:cs /app/packages/test-fixtures/dist ./packages/test-fixtures/dist
+COPY --from=build --chown=cs:cs /app/apps/mock-idp/dist ./apps/mock-idp/dist
+COPY --from=build --chown=cs:cs /app/apps/mock-idp/node_modules ./apps/mock-idp/node_modules
+COPY --from=build --chown=cs:cs /app/packages/contracts/package.json ./packages/contracts/
+COPY --from=build --chown=cs:cs /app/packages/test-fixtures/package.json ./packages/test-fixtures/
+COPY --from=build --chown=cs:cs /app/apps/mock-idp/package.json ./apps/mock-idp/
+USER cs
+EXPOSE 4001
+CMD ["node", "apps/mock-idp/dist/index.js"]

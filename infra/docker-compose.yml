@@ -1,0 +1,136 @@
+# Communication System – Local Development Stack
+# Usage: docker compose -f infra/docker-compose.yml up
+#
+# Services:
+#   postgres      – PostgreSQL 16 database
+#   minio         – S3-compatible object storage
+#   mock-idp      – Mock identity provider (port 4001) – DEV ONLY
+#   mock-webhook  – Mock webhook receiver (port 4002) – DEV ONLY
+#   api           – Fastify backend (port 3001)
+#   web           – React frontend (port 5173)
+#
+# Data volumes are named; use `docker compose down -v` to reset.
+
+name: communication-system
+
+services:
+  # --- Infrastructure ----------------------------------------------------------
+  postgres:
+    image: postgres:16.6-alpine
+    container_name: cs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: communication_system
+      POSTGRES_USER: cs_user
+      POSTGRES_PASSWORD: cs_pass
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cs_user -d communication_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: cs-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio_access
+      MINIO_ROOT_PASSWORD: minio_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # --- Dev-only services -------------------------------------------------------
+  mock-idp:
+    build:
+      context: ..
+      dockerfile: infra/dockerfiles/Dockerfile.mock-idp
+    container_name: cs-mock-idp
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    environment:
+      MOCK_IDP_PORT: "4001"
+      MOCK_IDP_ISSUER: "http://localhost:4001"
+      JWT_AUDIENCE: "communication-system"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mock-webhook:
+    build:
+      context: ..
+      dockerfile: infra/dockerfiles/Dockerfile.mock-webhook
+    container_name: cs-mock-webhook
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
+    environment:
+      MOCK_WEBHOOK_PORT: "4002"
+      WEBHOOK_SIGNING_SECRET: "dev_webhook_signing_secret_change_in_production"
+
+  # --- Application services ----------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: infra/dockerfiles/Dockerfile.api
+    container_name: cs-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-idp:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      API_PORT: "3001"
+      API_HOST: "0.0.0.0"
+      DATABASE_URL: "postgresql://cs_user:cs_pass@postgres:5432/communication_system"
+      JWKS_URI: "http://mock-idp:4001/.well-known/jwks.json"
+      JWT_AUDIENCE: "communication-system"
+      JWT_ISSUER: "http://localhost:4001"
+      STORAGE_ENDPOINT: "http://minio:9000"
+      STORAGE_ACCESS_KEY: "minio_access"
+      STORAGE_SECRET_KEY: "minio_secret"
+      STORAGE_BUCKET: "cs-attachments"
+      STORAGE_REGION: "us-east-1"
+      CORS_ORIGINS: "http://localhost:5173"
+      WEBHOOK_SIGNING_SECRET: "dev_webhook_signing_secret_change_in_production"
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/dockerfiles/Dockerfile.web
+    container_name: cs-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: "http://localhost:3001"
+      VITE_WS_URL: "ws://localhost:3001"
+      VITE_MOCK_IDP_URL: "http://localhost:4001"
+
+volumes:
+  postgres-data:
+  minio-data:

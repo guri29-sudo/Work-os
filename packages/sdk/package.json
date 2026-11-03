@@ -1,0 +1,30 @@
+{
+  "name": "@cs/sdk",
+  "version": "0.1.0",
+  "description": "Integration client for host apps (WorkOS). Implemented in Stage 4.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@cs/contracts": "workspace:*",
+    "@cs/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.1",
+    "rimraf": "6.0.1",
+    "typescript": "5.7.3"
+  }
+}
+

@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    /* Light Theme (Calm, spacious, WCAG AA compliant) */
+    --bg-canvas: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-subtle: #f1f5f9;
+    --bg-muted: #e2e8f0;
+    --bg-active: #cbd5e1;
+
+    --fg-primary: #0f172a;
+    --fg-secondary: #334155;
+    --fg-muted: #64748b;
+    --fg-subtle: #94a3b8;
+
+    --border-subtle: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.16);
+
+    /* Indigo-violet accent */
+    --accent: #6366f1;
+    --accent-hover: #4f46e5;
+    --accent-subtle: rgba(99, 102, 241, 0.10);
+    --accent-fg: #ffffff;
+
+    --danger: #ef4444;
+    --danger-subtle: rgba(239, 68, 68, 0.10);
+    --success: #10b981;
+    --success-subtle: rgba(16, 185, 129, 0.10);
+    --warning: #f59e0b;
+    --warning-subtle: rgba(245, 158, 11, 0.10);
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-full: 9999px;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark, [data-theme="dark"] {
+    --bg-canvas: #090d16;
+    --bg-surface: #0f172a;
+    --bg-subtle: #1e293b;
+    --bg-muted: #334155;
+    --bg-active: #475569;
+
+    --fg-primary: #f8fafc;
+    --fg-secondary: #cbd5e1;
+    --fg-muted: #94a3b8;
+    --fg-subtle: #64748b;
+
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+
+    --accent: #818cf8;
+    --accent-hover: #6366f1;
+    --accent-subtle: rgba(129, 140, 248, 0.15);
+    --accent-fg: #ffffff;
+
+    --danger: #f87171;
+    --danger-subtle: rgba(248, 113, 113, 0.15);
+    --success: #34d399;
+    --success-subtle: rgba(52, 211, 153, 0.15);
+    --warning: #fbbf24;
+    --warning-subtle: rgba(251, 191, 36, 0.15);
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  }
+
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--fg-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}

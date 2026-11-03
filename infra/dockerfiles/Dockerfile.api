@@ -1,0 +1,5 @@
+# Placeholder - fully implemented in Stage 2
+FROM node:22.12.0-alpine
+WORKDIR /app
+COPY apps/api/package.json ./
+RUN echo "API Docker image - built in Stage 2"

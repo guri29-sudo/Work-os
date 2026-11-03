@@ -1,0 +1,52 @@
+{
+    "name": "@cs/api",
+    "version": "0.1.0",
+    "description": "Fastify HTTP + WebSocket backend",
+    "type": "module",
+    "main": "./dist/index.js",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "build:openapi": "node dist/scripts/generate-openapi.js",
+        "dev": "tsx watch --tsconfig tsconfig.json src/index.ts",
+        "start": "node dist/index.js",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "lint": "eslint src/",
+        "test": "vitest run --config vitest.config.ts",
+        "test:integration": "vitest run --config vitest.integration.config.ts",
+        "db:migrate": "tsx src/db/migrate.ts",
+        "db:seed": "tsx src/db/seed.ts",
+        "clean": "rimraf dist"
+    },
+    "dependencies": {
+        "@cs/contracts": "workspace:*",
+        "@cs/test-fixtures": "workspace:*",
+        "@fastify/cors": "10.0.2",
+        "@fastify/helmet": "13.0.1",
+        "@fastify/rate-limit": "10.2.2",
+        "@fastify/swagger": "9.4.0",
+        "@fastify/swagger-ui": "5.2.1",
+        "@fastify/websocket": "11.0.2",
+        "drizzle-orm": "0.41.0",
+        "fastify": "5.2.1",
+        "fastify-plugin": "5.0.1",
+        "jose": "6.2.13",
+        "pg": "8.13.3",
+        "pino": "9.6.0",
+        "pino-pretty": "13.0.0",
+        "postgres": "3.4.5",
+        "ws": "8.18.0",
+        "zod": "3.24.1"
+    },
+    "devDependencies": {
+        "@types/node": "26.6.5",
+        "@types/pg": "8.11.11",
+        "@types/supertest": "6.0.2",
+        "@types/ws": "8.5.13",
+        "drizzle-kit": "0.31.1",
+        "rimraf": "6.1.3",
+        "supertest": "7.0.0",
+        "tsx": "4.23.15",
+        "typescript": "5.7.3",
+        "vitest": "3.2.4"
+    }
+}
