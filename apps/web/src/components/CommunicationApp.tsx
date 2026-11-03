@@ -52,6 +52,7 @@ import { WorkOSObjectDrawer } from './WorkOSObjectDrawer';
 import { CreateTaskModal } from './CreateTaskModal';
 import { AuditLogViewer } from './AuditLogViewer';
 import { MessagesListView } from './MessagesListView';
+import { MessagesWorkspace } from './MessagesWorkspace';
 import { FilesView } from './FilesView';
 import { NotificationsDrawer } from './NotificationsDrawer';
 
@@ -770,37 +771,45 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
               onOpenAuditLogs={() => setShowAuditModal(true)}
               onOpenNewMessage={() => setShowNewMessageModal(true)}
             />
-          ) : currentView === 'messages' ? (
-            <MessagesListView
-              claims={claims}
-              channels={channels}
-              activeChannelId={activeChannelId || ''}
-              onSelectChannel={handleSelectChannel}
-              onNewMessage={() => setShowNewMessageModal(true)}
-            />
           ) : currentView === 'files' ? (
             <FilesView claims={claims} channels={channels} />
-          ) : activeChannel ? (
-            <ConversationView
-              claims={claims}
-              channel={activeChannel}
-              messages={messages}
-              hasUnreadChannels={channels.some((c) => c.id !== activeChannel.id && (c.unread_count || 0) > 0)}
-              onBack={() => {
-                setCurrentView('home');
-                setShowMobileChannelsDrawer(false);
-                setActiveThreadMessage(null);
-              }}
-              onOpenChannelList={() => setShowMobileChannelsDrawer(true)}
-              onOpenThread={(msg) => setActiveThreadMessage(msg)}
-              onOpenObject={handleOpenObject}
-              onCreateTask={handleCreateTask}
-              onOpenChannelAdmin={(chan) => setAdminChannel(chan)}
-            />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">
-              Select a channel from the left sidebar to start communicating.
-            </div>
+            <MessagesWorkspace
+              showConversationOnMobile={currentView === 'conversation' && !!activeChannel}
+              list={
+                <MessagesListView
+                  claims={claims}
+                  channels={channels}
+                  activeChannelId={activeChannelId || ''}
+                  onSelectChannel={handleSelectChannel}
+                  onNewMessage={() => setShowNewMessageModal(true)}
+                />
+              }
+              conversation={
+                activeChannel ? (
+                  <ConversationView
+                    claims={claims}
+                    channel={activeChannel}
+                    messages={messages}
+                    hasUnreadChannels={channels.some((c) => c.id !== activeChannel.id && (c.unread_count || 0) > 0)}
+                    onBack={() => {
+                      setCurrentView('messages');
+                      setShowMobileChannelsDrawer(false);
+                      setActiveThreadMessage(null);
+                    }}
+                    onOpenChannelList={() => setShowMobileChannelsDrawer(true)}
+                    onOpenThread={(msg) => setActiveThreadMessage(msg)}
+                    onOpenObject={handleOpenObject}
+                    onCreateTask={handleCreateTask}
+                    onOpenChannelAdmin={(chan) => setAdminChannel(chan)}
+                  />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-[#6f6f78] text-sm">
+                    Select a conversation to start chatting.
+                  </div>
+                )
+              }
+            />
           )}
 
           {/* Sliding Thread Drawer (Full-screen sheet on mobile) */}
