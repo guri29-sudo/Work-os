@@ -55,6 +55,7 @@ import { MessagesListView } from './MessagesListView';
 import { MessagesWorkspace } from './MessagesWorkspace';
 import { FilesView } from './FilesView';
 import { NotificationsDrawer } from './NotificationsDrawer';
+import { CommunitiesView } from './CommunitiesView';
 
 function mapClaimsToSynthetic(raw: TokenClaims | null | undefined): TokenClaims | null {
   if (!raw) return null;
@@ -87,9 +88,51 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
 }) => {
   const [claims, setClaims] = useState<TokenClaims | null>(() => mapClaimsToSynthetic(initialClaims));
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [activeChannelId, setActiveChannelId] = useState<string | null>(initialChannelId || null);
-  const [currentView, setCurrentView] = useState<'home' | 'messages' | 'conversation' | 'files'>('home');
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(() => {
+    const match = window.location.pathname.match(/^\/app\/(?:channels|conversations|groups)\/([^/]+)/);
+    return initialChannelId || (match ? decodeURIComponent(match[1]) : null);
+  });
+  const [currentView, setCurrentView] = useState<'home' | 'messages' | 'groups' | 'conversation' | 'files' | 'communities'>(() => {
+    const path = window.location.pathname;
+    if (/^\/app\/(?:channels|conversations|groups)\//.test(path)) return 'conversation';
+    if (path.startsWith('/app/messages')) return 'messages';
+    if (path.startsWith('/app/groups')) return 'groups';
+    if (path.startsWith('/app/files')) return 'files';
+    if (path.startsWith('/app/communities')) return 'communities';
+    return 'home';
+  });
   const [messages, setMessages] = useState<Message[]>([]);
+
+  // URL-backed application navigation: supports refresh, deep links and browser back/forward.
+  useEffect(() => {
+    const routeFromLocation = () => {
+      const path = window.location.pathname;
+      const conversation = path.match(/^\/app\/(?:channels|conversations|groups)\/([^/]+)/);
+      if (conversation) {
+        setActiveChannelId(decodeURIComponent(conversation[1]));
+        setCurrentView('conversation');
+      } else if (path.startsWith('/app/messages')) setCurrentView('messages');
+      else if (path.startsWith('/app/groups')) setCurrentView('groups');
+      else if (path.startsWith('/app/files')) setCurrentView('files');
+      else if (path.startsWith('/app/communities')) setCurrentView('communities');
+      else if (path.startsWith('/app')) setCurrentView('home');
+    };
+    window.addEventListener('popstate', routeFromLocation);
+    return () => window.removeEventListener('popstate', routeFromLocation);
+  }, []);
+
+  useEffect(() => {
+    let path = '/app';
+    if (currentView === 'messages') path = '/app/messages';
+    if (currentView === 'groups') path = '/app/groups';
+    if (currentView === 'files') path = '/app/files';
+    if (currentView === 'communities') path = '/app/communities';
+    if (currentView === 'conversation' && activeChannelId) {
+      const selected = channels.find((channel) => channel.id === activeChannelId);
+      path = selected?.type === 'private' ? `/app/groups/${encodeURIComponent(activeChannelId)}` : `/app/conversations/${encodeURIComponent(activeChannelId)}`;
+    }
+    if (window.location.pathname !== path) window.history.pushState({ workos: true }, '', path);
+  }, [currentView, activeChannelId, channels]);
   const [activeThreadMessage, setActiveThreadMessage] = useState<Message | null>(null);
 
   // Modals & Panels
@@ -97,6 +140,8 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   const [searchInitialFilter, setSearchInitialFilter] = useState('all');
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [showNewChannelModal, setShowNewChannelModal] = useState(false);
+  const [newChannelDefaultType, setNewChannelDefaultType] = useState<'public' | 'private'>('public');
+  const openCreateGroup = () => { setNewChannelDefaultType('private'); setShowNewChannelModal(true); };
   const [adminChannel, setAdminChannel] = useState<Channel | null>(null);
   const [openedObject, setOpenedObject] = useState<WorkOSObjectRef | null>(null);
   const [taskModalContext, setTaskModalContext] = useState<{
@@ -380,6 +425,27 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                   ) : null}
                 </button>
 
+                {/* Group chats */}
+                <button
+                  onClick={() => { setCurrentView('groups'); setActiveThreadMessage(null); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    currentView === 'groups' ? 'bg-violet-600 text-white shadow-sm shadow-violet-600/30' : 'text-blue-200/70 hover:text-white hover:bg-white/10'
+                  } ${sidebarCollapsed ? 'justify-center' : 'justify-center lg:justify-start'}`}
+                  title="Group chats" aria-label="Group chats"
+                >
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span className={sidebarCollapsed ? 'hidden' : 'hidden lg:inline'}>Group chats</span>
+                </button>
+                <button
+                  onClick={openCreateGroup}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-violet-200/80 hover:text-white hover:bg-violet-500/10 transition ${sidebarCollapsed ? 'justify-center' : 'justify-center lg:justify-start'}`}
+                  title="Create group"
+                  aria-label="Create group"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span className={sidebarCollapsed ? 'hidden' : 'hidden lg:inline'}>Create group</span>
+                </button>
+
                 {/* Channels */}
                 <button
                   onClick={() => {
@@ -396,6 +462,18 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                 >
                   <Hash className="w-4 h-4 shrink-0" />
                   <span className={sidebarCollapsed ? 'hidden' : 'hidden lg:inline'}>Channels</span>
+                </button>
+
+                {/* Communities */}
+                <button
+                  onClick={() => { setCurrentView('communities'); setActiveThreadMessage(null); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    currentView === 'communities' ? 'bg-violet-600 text-white shadow-sm shadow-violet-600/30' : 'text-blue-200/70 hover:text-white hover:bg-white/10'
+                  } ${sidebarCollapsed ? 'justify-center' : 'justify-center lg:justify-start'}`}
+                  title="Communities" aria-label="Communities"
+                >
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span className={sidebarCollapsed ? 'hidden' : 'hidden lg:inline'}>Communities</span>
                 </button>
 
                 {/* Files */}
@@ -773,13 +851,15 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
             />
           ) : currentView === 'files' ? (
             <FilesView claims={claims} channels={channels} />
+          ) : currentView === 'communities' ? (
+            <CommunitiesView claims={claims} channels={channels} onCreateGroup={openCreateGroup} onOpenGroup={handleSelectChannel} />
           ) : (
             <MessagesWorkspace
               showConversationOnMobile={currentView === 'conversation' && !!activeChannel}
               list={
                 <MessagesListView
                   claims={claims}
-                  channels={channels}
+                  channels={currentView === 'groups' ? channels.filter((c) => c.type === 'private') : channels}
                   activeChannelId={activeChannelId || ''}
                   onSelectChannel={handleSelectChannel}
                   onNewMessage={() => setShowNewMessageModal(true)}
@@ -790,10 +870,11 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                   <ConversationView
                     claims={claims}
                     channel={activeChannel}
+                    channels={channels}
                     messages={messages}
                     hasUnreadChannels={channels.some((c) => c.id !== activeChannel.id && (c.unread_count || 0) > 0)}
                     onBack={() => {
-                      setCurrentView('messages');
+                      setCurrentView(activeChannel.type === 'private' ? 'groups' : 'messages');
                       setShowMobileChannelsDrawer(false);
                       setActiveThreadMessage(null);
                     }}
@@ -1063,6 +1144,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       {showNewChannelModal && (
         <NewChannelModal
           claims={claims}
+          initialType={newChannelDefaultType}
           onClose={() => setShowNewChannelModal(false)}
           onChannelCreated={(newChan) => {
             setShowNewChannelModal(false);

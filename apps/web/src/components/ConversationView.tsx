@@ -33,6 +33,8 @@ import {
   Check,
   ArrowLeft,
   ChevronDown,
+  Copy,
+  Forward,
 } from 'lucide-react';
 import {
   Attachment,
@@ -53,6 +55,7 @@ import { PdfViewerModal } from './PdfViewerModal';
 interface ConversationViewProps {
   claims: TokenClaims;
   channel: Channel;
+  channels: Channel[];
   messages: Message[];
   hasUnreadChannels?: boolean;
   onBack?: () => void;
@@ -81,6 +84,7 @@ function formatDaySeparator(dateString: string): string {
 export const ConversationView: React.FC<ConversationViewProps> = ({
   claims,
   channel,
+  channels,
   messages,
   hasUnreadChannels = false,
   onBack,
@@ -96,6 +100,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
+  const [forwardDestination, setForwardDestination] = useState('');
   const [selectedAttachments, setSelectedAttachments] = useState<Attachment[]>([]);
   const [selectedObjects, setSelectedObjects] = useState<WorkOSObjectRef[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -267,10 +274,39 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   };
 
   const handleDelete = (messageId: string) => {
+    if (!window.confirm('Delete this message? This action cannot be undone.')) return;
     try {
       communicationEngine.deleteMessage(claims, messageId);
+      setOpenMessageMenu(null);
+      setSuccessBanner('Message deleted.');
+      setTimeout(() => setSuccessBanner(null), 2500);
     } catch (err: any) {
       setErrorBanner(err.message);
+    }
+  };
+
+  const handleCopyMessage = async (message: Message) => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setOpenMessageMenu(null);
+      setSuccessBanner('Message copied to clipboard.');
+      setTimeout(() => setSuccessBanner(null), 2500);
+    } catch {
+      setErrorBanner('Clipboard access was blocked by your browser.');
+    }
+  };
+
+  const handleForwardMessage = () => {
+    if (!forwardingMessage || !forwardDestination) return;
+    try {
+      communicationEngine.forwardMessage(claims, forwardingMessage.id, forwardDestination);
+      setForwardingMessage(null);
+      setForwardDestination('');
+      setOpenMessageMenu(null);
+      setSuccessBanner('Message forwarded.');
+      setTimeout(() => setSuccessBanner(null), 2500);
+    } catch (err: any) {
+      setErrorBanner(err.message || 'Unable to forward this message.');
     }
   };
 
@@ -674,15 +710,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                   )}
                 </div>
 
-                {/* Hover actions */}
+                {/* Message actions */}
                 {!isDeleted && (
                   <div
-                    className={`opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity absolute top-[44px] ${
+                    className={`opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity absolute top-[44px] ${
                       isSender ? 'left-0' : 'right-0'
                     } bg-[#1b1b20] border border-[#2e2e35] rounded-xl shadow-lg flex items-center p-0.5 z-20`}
                   >
-                    <button type="button" onClick={() => handleTogglePin(msg.id)} className={iconBtn} title="Pin message">
-                      <Pin className="w-3.5 h-3.5" />
+                    <button type="button" onClick={() => handleTogglePin(msg.id)} className={iconBtn} title={msg.is_pinned ? 'Unpin message' : 'Pin message'}>
+                      <Pin className={`w-3.5 h-3.5 ${msg.is_pinned ? 'text-violet-300' : ''}`} />
                     </button>
                     <button type="button" onClick={() => onOpenThread(msg)} className={iconBtn} title="Reply in thread">
                       <MessageSquare className="w-3.5 h-3.5" />
@@ -695,23 +731,35 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                     >
                       <Smile className="w-3.5 h-3.5" />
                     </button>
-                    {(isSender || canModerate) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingMessageId(msg.id);
-                          setEditingContent(msg.content);
-                        }}
-                        className={iconBtn}
-                        title="Edit"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {(isSender || canModerate) && (
-                      <button type="button" onClick={() => handleDelete(msg.id)} className={`${iconBtn} hover:!text-rose-400`} title="Delete">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <button
+                      type="button"
+                      onClick={() => setOpenMessageMenu(openMessageMenu === msg.id ? null : msg.id)}
+                      className={iconBtn}
+                      title="More message actions"
+                      aria-label="More message actions"
+                      aria-expanded={openMessageMenu === msg.id}
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+                    {openMessageMenu === msg.id && (
+                      <div className={`absolute top-full mt-1 ${isSender ? 'left-0' : 'right-0'} min-w-44 rounded-xl border border-[#34343d] bg-[#202027] p-1.5 shadow-2xl z-40`}>
+                        <button type="button" onClick={() => handleCopyMessage(msg)} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-[#e5e5eb] hover:bg-white/10">
+                          <Copy className="h-3.5 w-3.5" /> Copy message
+                        </button>
+                        <button type="button" onClick={() => { setForwardingMessage(msg); setForwardDestination(''); setOpenMessageMenu(null); }} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-[#e5e5eb] hover:bg-white/10">
+                          <Forward className="h-3.5 w-3.5" /> Forward
+                        </button>
+                        {(isSender || canModerate) && (
+                          <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingContent(msg.content); setOpenMessageMenu(null); }} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-[#e5e5eb] hover:bg-white/10">
+                            <Edit2 className="h-3.5 w-3.5" /> Edit message
+                          </button>
+                        )}
+                        {(isSender || canModerate) && (
+                          <button type="button" onClick={() => handleDelete(msg.id)} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-rose-300 hover:bg-rose-500/10">
+                            <Trash2 className="h-3.5 w-3.5" /> Delete message
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -738,6 +786,29 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         })}
         <div ref={messagesEndRef} />
       </div>
+
+      {forwardingMessage && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="forward-message-title">
+          <div className="w-full max-w-md rounded-2xl border border-[#34343d] bg-[#1b1b20] p-5 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 id="forward-message-title" className="text-base font-semibold text-white">Forward message</h2>
+              <button type="button" onClick={() => setForwardingMessage(null)} className={iconBtn} aria-label="Close forward dialog"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-3 line-clamp-3 rounded-xl bg-white/5 p-3 text-sm text-[#c9c9d2]">{forwardingMessage.content}</p>
+            <label htmlFor="forward-destination" className="mb-1.5 block text-xs font-medium text-[#b8b8c2]">Choose a conversation</label>
+            <select id="forward-destination" value={forwardDestination} onChange={(event) => setForwardDestination(event.target.value)} className="w-full rounded-xl border border-[#3a3a44] bg-[#121216] px-3 py-2.5 text-sm text-white outline-none focus:border-violet-400">
+              <option value="">Select destination</option>
+              {channels.filter((item) => item.id !== channel.id && !item.is_archived).map((item) => (
+                <option key={item.id} value={item.id}>{item.type === 'direct' ? item.name : `# ${item.name}`}</option>
+              ))}
+            </select>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setForwardingMessage(null)} className="rounded-xl px-4 py-2 text-sm text-[#b8b8c2] hover:bg-white/5">Cancel</button>
+              <button type="button" onClick={handleForwardMessage} disabled={!forwardDestination} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"><Forward className="h-4 w-4" /> Forward</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Composer */}
       <div className="px-1.5 pb-1.5 pt-2 shrink-0">

@@ -178,3 +178,116 @@
   background: rgba(100, 116, 139, 0.6);
 }
 
+
+/* WorkOS cinematic chat refresh — inspired by the supplied reference screens */
+@layer base {
+  :root {
+    --color-primary: #09090d;
+    --color-accent: #5543d7;
+    --color-accent-hover: #6756e8;
+    --color-bg-app: #050509;
+    --color-bg-card: #1c1c21;
+    --color-border: #303036;
+    --color-text-main: #f5f4f8;
+    --color-text-muted: #85848e;
+  }
+  body {
+    background: radial-gradient(ellipse 58% 42% at 50% 25%, rgba(67, 48, 177, .24), transparent 72%), #050509 !important;
+    color: #f5f4f8;
+  }
+  html { background: #050509; }
+}
+:root { color-scheme: dark; }
+body, #root { min-height: 100dvh; }
+#root { isolation: isolate; }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+input, textarea, select { color: #f5f4f8; }
+input::placeholder, textarea::placeholder { color: #85848e; opacity: 1; }
+
+/* Charcoal surfaces and purple accents matching the reference UI. */
+.bg-\[\#0c1527\], .bg-\[\#091322\], .bg-\[\#0b1324\],
+.bg-slate-950, .bg-slate-900 { background-color: #07070b !important; }
+.bg-slate-800 { background-color: #202026 !important; }
+.bg-slate-700 { background-color: #2b2b32 !important; }
+.bg-slate-50, .bg-slate-100 { background-color: #1c1c21 !important; }
+.bg-white { background-color: #1c1c21 !important; color: #f5f4f8; }
+.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700,
+.text-gray-900, .text-gray-800 { color: #f5f4f8 !important; }
+.text-slate-600, .text-slate-500, .text-slate-400, .text-gray-600,
+.text-gray-500, .text-gray-400 { color: #92919c !important; }
+.border-slate-100, .border-slate-200, .border-slate-300,
+.border-blue-900\/60, .border-blue-900\/40 { border-color: #303036 !important; }
+.bg-blue-600, .bg-blue-700 { background-color: #5543d7 !important; }
+.hover\:bg-blue-500:hover, .hover\:bg-blue-600:hover { background-color: #6756e8 !important; }
+.text-blue-600, .text-blue-500, .text-blue-400, .text-blue-300 { color: #aaa0ff !important; }
+.ring-blue-500, .ring-blue-400 { --tw-ring-color: #6654e8 !important; }
+
+input:not([type="checkbox"]):not([type="radio"]), textarea, select { border-color: #303036; }
+input:focus, textarea:focus, select:focus {
+  border-color: #6654e8 !important;
+  box-shadow: 0 0 0 3px rgba(102,84,232,.15);
+  outline: none;
+}
+.rounded-2xl, .rounded-3xl { border-radius: 1.25rem; }
+.rounded-xl { border-radius: .9rem; }
+::selection { background: rgba(102,84,232,.42); color: #fff; }
+html, body { max-width: 100%; overflow-x: hidden; }
+@media (max-width: 767px) {
+  body { background: #07070b !important; }
+  #root { min-height: 100dvh; }
+  button, [role="button"] { touch-action: manipulation; }
+  input, textarea, select { font-size: 16px; }
+}
+
+
+/* WorkOS chat experience — aligned to the supplied dark reference screenshots. */
+@layer base {
+  :root {
+    --color-primary: #09090d;
+    --color-accent: #6654e8;
+    --color-accent-hover: #7665f0;
+    --color-bg-app: #07070b;
+    --color-bg-card: #1c1c21;
+    --color-border: #303036;
+    --color-text-main: #f5f4f8;
+    --color-text-muted: #92919c;
+  }
+  html, body { min-height: 100%; background: #07070b; }
+  body {
+    background: radial-gradient(ellipse 58% 42% at 50% 24%, rgba(67,48,177,.22), transparent 72%), #07070b !important;
+    color: #f5f4f8;
+  }
+}
+:root { color-scheme: dark; }
+#root { min-height: 100dvh; isolation: isolate; }
+::selection { background: rgba(102,84,232,.42); color: #fff; }
+input::placeholder, textarea::placeholder { color: #85848e; opacity: 1; }
+input:focus, textarea:focus, select:focus { border-color: #6654e8 !important; outline: none; box-shadow: 0 0 0 3px rgba(102,84,232,.15); }
+button { -webkit-tap-highlight-color: transparent; }
+@media (max-width: 767px) {
+  html, body, #root { max-width: 100%; overflow-x: hidden; }
+  input, textarea, select { font-size: 16px; }
+  button, [role="button"] { touch-action: manipulation; }
+}
+
+/* Consistent charcoal surfaces and violet interaction states across existing screens. */
+.bg-white, .bg-slate-50, .bg-slate-100 { background-color: #1c1c21 !important; color: #f5f4f8; }
+.bg-slate-950, .bg-slate-900 { background-color: #08080c !important; }
+.bg-slate-800 { background-color: #202026 !important; }
+.bg-slate-700 { background-color: #2b2b32 !important; }
+.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700, .text-gray-900, .text-gray-800 { color: #f5f4f8 !important; }
+.text-slate-600, .text-slate-500, .text-slate-400, .text-gray-600, .text-gray-500, .text-gray-400 { color: #92919c !important; }
+.border-slate-100, .border-slate-200, .border-slate-300, .border-blue-100, .border-blue-200 { border-color: #303036 !important; }
+.bg-blue-600, .bg-blue-700 { background-color: #5543d7 !important; }
+.text-blue-600, .text-blue-500, .text-blue-400, .text-blue-300 { color: #aaa0ff !important; }
+
+/* WorkOS responsive workspace refinements */
+@media (max-width: 767px) {
+  .messages-workspace, [data-workspace="messages"] { min-height: 0; }
+  .fixed.inset-0 > form, .fixed.inset-0 > div { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+  .message-bubble, [data-message-bubble] { overflow-wrap: anywhere; }
+}
+@media (min-width: 768px) and (max-width: 1024px) {
+  .workos-sidebar { width: 4.5rem; }
+}

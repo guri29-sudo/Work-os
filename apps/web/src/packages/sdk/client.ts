@@ -640,6 +640,7 @@ class CommunicationEngine {
       throw new Error('403 Forbidden: Cannot edit another user\'s message without moderate permission');
     }
 
+    const previousLength = msg.content.length;
     msg.content = newContent;
     msg.is_edited = true;
     msg.updated_at = new Date().toISOString();
@@ -651,7 +652,7 @@ class CommunicationEngine {
       'message.edited',
       'message',
       messageId,
-      { previousLength: msg.content.length, newLength: newContent.length }
+      { previousLength, newLength: newContent.length }
     );
 
     this.persist();
@@ -691,6 +692,49 @@ class CommunicationEngine {
 
     this.persist();
     this.emit('message.updated', msg);
+  }
+
+  /**
+   * Forward a message into another conversation.
+   * The destination is validated through the same tenant and membership rules
+   * as ordinary message creation.
+   */
+  public forwardMessage(claims: TokenClaims, messageId: string, destinationChannelId: string): Message {
+    this.verifyToken(claims);
+    const original = this.messages.find((message) => message.id === messageId);
+    if (!original) throw new Error('Message not found');
+    if (original.is_deleted) throw new Error('Deleted messages cannot be forwarded');
+
+    const destination = this.channels.find((channel) => channel.id === destinationChannelId);
+    if (!destination || destination.company_id !== claims.company_id) {
+      throw new Error('Destination conversation not found');
+    }
+    if (
+      (destination.type === 'private' || destination.type === 'direct') &&
+      !destination.member_ids.includes(claims.sub)
+    ) {
+      throw new Error('You are not a member of the destination conversation');
+    }
+
+    const forwarded = this.sendMessage(claims, {
+      channel_id: destinationChannelId,
+      content: `↪ Forwarded from ${this.channels.find((channel) => channel.id === original.channel_id)?.name || 'another conversation'}: ${original.content}`,
+      attachments: original.attachments,
+      object_refs: original.object_refs,
+      mentions: [],
+      idempotency_key: `forward_${messageId}_${destinationChannelId}_${Date.now()}`,
+    });
+    this.recordAudit(
+      claims.company_id,
+      claims.sub,
+      claims.name,
+      'message.forwarded',
+      'message',
+      messageId,
+      { destinationChannelId, forwardedMessageId: forwarded.id }
+    );
+    this.persist();
+    return forwarded;
   }
 
   /**
