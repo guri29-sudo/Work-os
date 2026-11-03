@@ -85,6 +85,7 @@ export const MOCK_TOKENS: Record<string, TokenClaims> = {
     permissions: [
       'communication.access',
       'communication.channel.create',
+      'communication.private_channel.create',
       'communication.message.send',
     ],
     iss: 'https://auth.workos.internal',
@@ -121,6 +122,7 @@ export const MOCK_TOKENS: Record<string, TokenClaims> = {
     permissions: [
       'communication.access',
       'communication.channel.create',
+      'communication.private_channel.create',
       'communication.message.send',
     ],
     iss: 'https://auth.workos.internal',

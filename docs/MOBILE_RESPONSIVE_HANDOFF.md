@@ -29,3 +29,14 @@ Check at 320x568, 360x800, 390x844, 430x932, 667x375 (landscape), 768x1024 and 1
 - Create group/channel/community dialogs
 - Search, file preview, attachment selection and forwarding
 - Bottom navigation and safe-area spacing on iOS/Android
+
+
+## Follow-up repair: private groups + mobile visibility
+
+- Private-group creation is now part of the standard `member` permission set, matching the expected collaboration workflow. Guest/read-only roles remain restricted.
+- The mock web identities for Vedant and Sneha now carry the same private-group permission as the shared role defaults; the admin identity retains its management permissions.
+- The API seed fallback for newly inserted admin/member identities now includes the corresponding private-channel capability. The API route continues enforcing `communication.private_channel.create`; no authorization check was removed.
+- The MessagesWorkspace now has explicit `messages-workspace` and `data-workspace="messages"` hooks so responsive styles target the actual component.
+- Added a second mobile finishing pass for dialog sizing/scrolling, safe-area spacing, form action visibility, compact phone widths, and tablet workspace sizing.
+
+Validation performed: CSS parsed with zero syntax errors and targeted permission/workspace assertions passed. A full dependency install, TypeScript build, API integration test, and real iOS/Android browser test were not run in this environment.

@@ -17,7 +17,8 @@ export const MessagesWorkspace: React.FC<MessagesWorkspaceProps> = ({
   conversation,
 }) => (
   <div
-    className="flex-1 min-w-0 h-full overflow-hidden relative bg-[#02020a] flex items-center justify-center p-0 md:p-6 lg:p-10 select-text"
+    data-workspace="messages"
+    className="messages-workspace flex-1 min-w-0 h-full overflow-hidden relative bg-[#02020a] flex items-center justify-center p-0 md:p-6 lg:p-10 select-text"
     style={{
       backgroundImage:
         'radial-gradient(ellipse 55% 38% at 50% 0%, rgba(40,36,140,0.55) 0%, rgba(20,18,80,0.28) 45%, rgba(2,2,10,0) 100%)',

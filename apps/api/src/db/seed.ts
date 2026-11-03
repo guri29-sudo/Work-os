@@ -76,8 +76,18 @@ async function seed() {
         avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(su.name)}`,
         role: su.role as any,
         permissions: su.role === "admin"
-          ? ["communication.access", "communication.channel.create", "communication.channel.manage", "communication.member.manage", "communication.message.send", "communication.audit.read"]
-          : ["communication.access", "communication.channel.create", "communication.message.send"],
+          ? [
+            "communication.access",
+            "communication.channel.create",
+            "communication.private_channel.create",
+            "communication.channel.manage",
+            "communication.member.manage",
+            "communication.message.send",
+            "communication.message.moderate",
+            "communication.announcement.publish",
+            "communication.audit.read",
+          ]
+          : ["communication.access", "communication.channel.create", "communication.private_channel.create", "communication.message.send"],
         department_ids: [],
         project_ids: [],
       });

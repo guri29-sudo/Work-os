@@ -585,3 +585,87 @@ pre, code {
     width: 240px;
   }
 }
+
+
+/* Mobile visibility and viewport correction pass (all app routes). */
+@media (max-width: 767px) {
+  html, body, #root { height: 100%; min-height: 100dvh; }
+  #root { display: flex; flex-direction: column; }
+  #root > * { flex: 1 1 auto; min-height: 0; }
+  #root main, #root [role="main"] { min-height: 0; }
+  #root .messages-workspace { height: 100%; min-height: 0; }
+  #root .messages-workspace > div {
+    height: 100%; min-height: 0; max-height: none;
+    display: flex; flex-direction: row;
+  }
+  #root .messages-workspace > div > aside,
+  #root .messages-workspace > div > section {
+    min-height: 0; max-height: 100%; overflow: hidden;
+  }
+  #root .messages-workspace > div > section > * { min-height: 0; }
+  /* Prevent fixed bottom tabs from covering page content. */
+  #root nav[aria-label="Mobile Navigation"] {
+    box-sizing: content-box;
+    padding-left: max(4px, env(safe-area-inset-left));
+    padding-right: max(4px, env(safe-area-inset-right));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #root nav[aria-label="Mobile Navigation"] + * { margin-bottom: 0; }
+  /* Allow every page panel to shrink and scroll instead of clipping. */
+  #root .min-h-screen, #root .h-screen, #root .h-full {
+    min-height: 0;
+  }
+  #root .overflow-hidden { overscroll-behavior: contain; }
+  #root [role="dialog"] {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: max(8px, env(safe-area-inset-top)) 8px
+      max(8px, env(safe-area-inset-bottom));
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  #root [role="dialog"] > div {
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Stack form controls and action rows on narrow screens. */
+  #root [role="dialog"] form { min-width: 0; }
+  #root [role="dialog"] form > div { min-width: 0; }
+  #root [role="dialog"] form button { min-height: 44px; }
+  #root [role="dialog"] form .grid.grid-cols-2 { grid-template-columns: minmax(0,1fr); }
+  #root [role="dialog"] form .pt-3.flex {
+    position: sticky;
+    bottom: -1px;
+    z-index: 12;
+    margin: 0 -1.25rem -1.25rem;
+    padding: 12px 1.25rem max(12px, env(safe-area-inset-bottom));
+    background: #17171e;
+    border-top: 1px solid #303039;
+  }
+  /* Keep common dashboard cards, tables and settings controls in the viewport. */
+  #root .grid[class*="grid-cols-"] { grid-template-columns: minmax(0, 1fr) !important; }
+  #root [class*="w-["] { max-width: 100%; }
+  #root table { display: block; width: 100%; overflow-x: auto; }
+  #root .flex > .truncate, #root .flex > .min-w-0 { min-width: 0; }
+  #root img, #root video, #root iframe { max-width: 100%; }
+}
+@media (max-width: 380px) {
+  :root { --workos-mobile-gutter: 10px; }
+  #root header { gap: 3px; padding-inline: 5px; }
+  #root header button { min-width: 36px; }
+  #root nav[aria-label="Mobile Navigation"] button { min-width: 0; padding-inline: 0; }
+  #root nav[aria-label="Mobile Navigation"] button span { font-size: 9px; }
+  #root [role="dialog"] > div { border-radius: 18px 18px 12px 12px; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  #root .messages-workspace { min-width: 0; }
+  #root .messages-workspace > div { max-width: 100%; }
+}
