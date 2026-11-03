@@ -73,7 +73,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ claims, onClose 
 
   return (
     <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-blue-100 overflow-hidden animate-scaleUp flex flex-col max-h-[85vh]">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-blue-100 overflow-hidden animate-scaleUp flex flex-col max-h-[85dvh]">
         {/* Header */}
         <div className="px-6 py-5 border-b border-blue-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">

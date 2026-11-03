@@ -40,3 +40,12 @@ Check at 320x568, 360x800, 390x844, 430x932, 667x375 (landscape), 768x1024 and 1
 - Added a second mobile finishing pass for dialog sizing/scrolling, safe-area spacing, form action visibility, compact phone widths, and tablet workspace sizing.
 
 Validation performed: CSS parsed with zero syntax errors and targeted permission/workspace assertions passed. A full dependency install, TypeScript build, API integration test, and real iOS/Android browser test were not run in this environment.
+
+## Mobile fix pass 3
+
+- Groups, Create group and Communities were unreachable on phones (only in the desktop sidebar). Added them to the mobile "More" sheet.
+- Replaced `h-screen`/`vh` with `h-dvh`/`dvh` so the bottom of the app is not hidden behind mobile browser bars.
+- Added `viewport-fit=cover` so safe-area insets actually work on notched phones.
+- Bottom tab bar + content offset + FAB now use one safe-area-aware set of classes (`mobile-nav`, `mobile-nav-offset`, `mobile-fab`); removed conflicting CSS that double-counted padding.
+- Removed the blanket `.grid` single-column override that broke authored responsive grids.
+- Conversation header actions (pins, settings) are always visible below `md`.

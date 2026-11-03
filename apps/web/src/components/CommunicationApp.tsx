@@ -304,7 +304,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
 
   if (!claims) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#f4f6fa]">
+      <div className="flex items-center justify-center h-dvh bg-[#f4f6fa]">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-semibold text-slate-500">
@@ -335,7 +335,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   const companyName = companyDisplayName;
 
   return (
-    <div className="flex h-screen w-full bg-[var(--color-bg-app)] overflow-hidden select-none font-sans">
+    <div className="flex h-dvh w-full bg-[var(--color-bg-app)] overflow-hidden select-none font-sans">
       {/* Left Sidebar: Hidden on mobile (<768px), icon rail on 768-1023px (w-16), collapsible on >=1024px */}
       <aside
         className={`hidden md:flex flex-col justify-between shrink-0 border-r border-blue-900/60 z-20 bg-[#0a1a36] text-blue-100 transition-all duration-200 ${
@@ -368,7 +368,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
           </div>
 
           {/* Navigation Links */}
-          <div className="px-2 lg:px-4 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-170px)]">
+          <div className="px-2 lg:px-4 py-4 space-y-6 overflow-y-auto max-h-[calc(100dvh-170px)]">
             <div>
               <span
                 className={`text-[10px] font-bold uppercase tracking-wider text-blue-300 block px-3 mb-2 ${
@@ -835,7 +835,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
         </header>
 
         {/* Viewport Content */}
-        <div className={`flex-1 min-h-0 min-w-0 flex overflow-hidden ${currentView !== 'conversation' ? 'pb-16 md:pb-0' : ''}`}>
+        <div className={`flex-1 min-h-0 min-w-0 flex overflow-hidden ${currentView !== 'conversation' ? 'mobile-nav-offset md:pb-0' : ''}`}>
           {currentView === 'home' ? (
             <HomeDashboard
               claims={claims}
@@ -920,7 +920,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
         {(currentView === 'home' || currentView === 'messages') && (
           <button
             onClick={() => setShowNewMessageModal(true)}
-            className="md:hidden fixed bottom-20 right-4 z-30 min-h-[50px] min-w-[50px] rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white shadow-xl shadow-blue-600/40 flex items-center justify-center transition"
+            className="mobile-fab md:hidden fixed right-4 z-30 min-h-[50px] min-w-[50px] rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white shadow-xl shadow-blue-600/40 flex items-center justify-center transition"
             aria-label="New message"
           >
             <Plus className="w-6 h-6" />
@@ -931,7 +931,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
         {currentView !== 'conversation' && (
           <nav
             aria-label="Mobile Navigation"
-            className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0a1a36] text-blue-100 border-t border-blue-900/60 z-40 flex items-center justify-around safe-pb shadow-2xl"
+            className="mobile-nav md:hidden fixed bottom-0 left-0 right-0 bg-[#0a1a36] text-blue-100 border-t border-blue-900/60 z-40 flex items-center justify-around shadow-2xl"
           >
             <button
               onClick={() => {
@@ -1017,7 +1017,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
         {/* Mobile More Sheet */}
         {showMobileMore && (
           <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end">
-            <div className="bg-[#0a1a36] border-t border-blue-900 text-white rounded-t-3xl p-5 space-y-4 animate-slideUp max-h-[85vh] overflow-y-auto safe-pb">
+            <div className="bg-[#0a1a36] border-t border-blue-900 text-white rounded-t-3xl p-5 space-y-4 animate-slideUp max-h-[85dvh] overflow-y-auto safe-pb">
               <div className="flex items-center justify-between pb-3 border-b border-blue-900/60">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shadow-md">
@@ -1047,6 +1047,41 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
                 >
                   <Users className="w-4 h-4 text-blue-400" />
                   <span>People & DMs</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowMobileMore(false);
+                    setCurrentView('groups');
+                    setActiveThreadMessage(null);
+                  }}
+                  className="min-h-[44px] p-3 rounded-xl bg-white/10 hover:bg-white/15 flex items-center gap-2.5 transition"
+                >
+                  <Users className="w-4 h-4 text-violet-300" />
+                  <span>Group chats</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowMobileMore(false);
+                    openCreateGroup();
+                  }}
+                  className="min-h-[44px] p-3 rounded-xl bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 flex items-center gap-2.5 transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create group</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowMobileMore(false);
+                    setCurrentView('communities');
+                    setActiveThreadMessage(null);
+                  }}
+                  className="min-h-[44px] p-3 rounded-xl bg-white/10 hover:bg-white/15 flex items-center gap-2.5 transition"
+                >
+                  <Users className="w-4 h-4 text-sky-300" />
+                  <span>Communities</span>
                 </button>
 
                 <button

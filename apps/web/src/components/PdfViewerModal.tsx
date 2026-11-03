@@ -47,7 +47,7 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl max-w-4xl w-full h-[88vh] shadow-2xl border border-blue-200 overflow-hidden flex flex-col animate-scaleUp">
+      <div className="bg-white rounded-3xl max-w-4xl w-full h-[88dvh] shadow-2xl border border-blue-200 overflow-hidden flex flex-col animate-scaleUp">
         {/* Header with Blue Theme */}
         <div className="px-6 py-4 bg-[#0a1a36] text-white flex items-center justify-between shrink-0 border-b border-blue-900/60">
           <div className="flex items-center gap-3 min-w-0">

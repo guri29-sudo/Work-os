@@ -154,7 +154,7 @@ export default function App() {
 
   // Dev routes
   if (import.meta.env.DEV && devRoute) {
-    const DevFallback = <div className="flex items-center justify-center h-screen text-slate-500 text-sm">Loading dev tool...</div>;
+    const DevFallback = <div className="flex items-center justify-center h-dvh text-slate-500 text-sm">Loading dev tool...</div>;
     if (devRoute === '/dev/acceptance' && AcceptanceDevPage) {
       return <Suspense fallback={DevFallback}><AcceptanceDevPage /></Suspense>;
     }
@@ -172,7 +172,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full max-w-[100vw] bg-[var(--color-bg-app)] overflow-hidden select-none">
+    <div className="flex flex-col h-dvh w-full max-w-full bg-[var(--color-bg-app)] overflow-hidden select-none">
       <div className="flex-1 overflow-hidden relative">
         <CommunicationApp
           key={currentClaims.sub}
