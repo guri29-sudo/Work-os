@@ -1183,7 +1183,7 @@ class CommunicationEngine {
   ): Promise<GenerateSummaryResponse> {
     const API_BASE =
       (typeof window !== 'undefined' && (window as any).VITE_COMMUNICATION_API_URL) ||
-      (typeof process !== 'undefined' && process.env?.VITE_COMMUNICATION_API_URL) ||
+      (typeof globalThis !== 'undefined' && (globalThis as any).process?.env?.VITE_COMMUNICATION_API_URL) ||
       '';
 
     const token =
