@@ -151,6 +151,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const unreadCount = communicationEngine.getUnreadCountForConversation(claims, channel.id);
   const hasSummaryHighlight = unreadCount >= SUMMARY_UNREAD_THRESHOLD;
 
+  // Prompt dismissal state for receiver summary banner above keypad
+  const [isPromptDismissed, setIsPromptDismissed] = useState(false);
+
+  // Reset prompt dismissal on channel change
+  useEffect(() => {
+    setIsPromptDismissed(false);
+  }, [channel.id]);
+
   // Realtime notification when new messages arrive while summary modal is open
   useEffect(() => {
     if (showSummaryModal && !isSummaryLoading && lastSummaryMessageCountRef.current > 0) {
@@ -308,6 +316,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       setContent('');
       setSelectedAttachments([]);
       setSelectedObjects([]);
+      communicationEngine.markChannelRead(channel.id, claims.sub);
+      setIsPromptDismissed(true);
     } catch (err: any) {
       setErrorBanner(err.message || 'Failed to send message');
     } finally {
@@ -995,6 +1005,46 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                 </button>
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Receiver-Only Quick Action Popup Above the Keypad (when ≥8 unread incoming messages) */}
+        {hasSummaryHighlight && !isPromptDismissed && (
+          <div className="mb-2 px-3.5 py-2.5 rounded-2xl bg-[#1b1b24] border border-[#4f3fd1]/40 shadow-lg shadow-[#4f3fd1]/20 flex items-center justify-between gap-3 text-white animate-fadeIn">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-[#4f3fd1]/20 border border-[#4f3fd1]/40 flex items-center justify-center shrink-0 text-[#8b7dff]">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="text-xs min-w-0">
+                <span className="font-semibold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount} unread messages
+                </span>
+                <span className="text-[#8a8a93] ml-1.5 hidden sm:inline">
+                  Catch up quickly with AI
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenDateRangePicker();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-[#4f3fd1] hover:bg-[#5d4de0] text-xs font-semibold text-white flex items-center gap-1.5 shadow-sm shadow-[#4f3fd1]/30 transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Summarize</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPromptDismissed(true)}
+                className="p-1 rounded-lg text-[#8a8a93] hover:text-white hover:bg-white/10 transition cursor-pointer"
+                aria-label="Dismiss summary suggestion"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         )}
 

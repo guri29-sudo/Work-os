@@ -189,7 +189,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       try {
         const msgs = communicationEngine.getMessages(claims, channelId);
         setMessages(msgs);
-        communicationEngine.markChannelRead(channelId);
+        communicationEngine.markChannelRead(channelId, claims.sub);
       } catch (err: any) {
         // Channel message load failed
       }

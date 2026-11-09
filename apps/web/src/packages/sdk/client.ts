@@ -291,6 +291,11 @@ class CommunicationEngine {
         return true;
       })
       .map((c) => {
+        const computedUnread = this.getUnreadCountForConversation(claims, c.id);
+        const channelObj = {
+          ...c,
+          unread_count: computedUnread,
+        };
         if (c.type === 'direct') {
           // In direct messages, dynamically show the other participant's name to the viewing user
           const otherMemberId = c.member_ids.find((id) => id !== claims.sub);
@@ -298,14 +303,14 @@ class CommunicationEngine {
             const otherUser = Object.values(SYNTHETIC_USERS).find((u) => u.id === otherMemberId);
             if (otherUser) {
               return {
-                ...c,
+                ...channelObj,
                 name: otherUser.name,
                 description: `Direct message with ${otherUser.name}`,
               };
             }
           }
         }
-        return c;
+        return channelObj;
       });
   }
 
@@ -474,10 +479,16 @@ class CommunicationEngine {
 
     this.messages.push(newMessage);
 
+    // Update sender's read marker so sender is always up to date
+    this.userReadMarkers[`${claims.sub}_${payload.channel_id}`] = {
+      lastReadAt: newMessage.created_at,
+      lastReadMessageId: newMessage.id,
+    };
+
     // Update channel metadata
     channel.last_message = `${claims.name.split(' ')[0]}: ${payload.content.slice(0, 45)}...`;
     channel.last_message_at = 'Just now';
-    channel.unread_count = (channel.unread_count || 0) + 1;
+    channel.unread_count = 0;
 
     this.persist();
 
@@ -1126,17 +1137,17 @@ class CommunicationEngine {
   }
 
   public getUnreadCountForConversation(claims: TokenClaims, channelId: string): number {
-    const markerKey = `${claims.sub}_${channelId}`;
-    const marker = this.userReadMarkers[markerKey];
-    const lastReadAt = marker?.lastReadAt;
-
     const validMessages = this.messages.filter(
       (m) => m.channel_id === channelId && !m.is_deleted && m.sender_id !== claims.sub
     );
 
+    const markerKey = `${claims.sub}_${channelId}`;
+    const marker = this.userReadMarkers[markerKey];
+    const lastReadAt = marker?.lastReadAt;
+
     if (!lastReadAt) {
-      const chan = this.channels.find((c) => c.id === channelId);
-      return chan?.unread_count ?? validMessages.length;
+      // Unread count strictly counts non-deleted messages by OTHERS
+      return validMessages.length;
     }
 
     const lastReadDate = new Date(lastReadAt);
