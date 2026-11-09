@@ -89,8 +89,8 @@ class CommunicationEngine {
     // Try to load any saved demo state from localStorage / sessionStorage or fallback to initial
     try {
       const saved =
-        (typeof localStorage !== 'undefined' ? localStorage.getItem('workos_comm_state_v1') : null) ||
-        (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('workos_comm_state_v1') : null);
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('workos_comm_state_v3') : null) ||
+        (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('workos_comm_state_v3') : null);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.channels && parsed.messages) {
@@ -109,7 +109,7 @@ class CommunicationEngine {
     // Instant cross-window / cross-tab storage sync
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (event) => {
-        if (event.key === 'workos_comm_state_v1' && event.newValue) {
+        if (event.key === 'workos_comm_state_v3' && event.newValue) {
           try {
             const parsed = JSON.parse(event.newValue);
             if (parsed.messages && parsed.messages.length !== this.messages.length) {
@@ -196,10 +196,10 @@ class CommunicationEngine {
         summaryCache: this.summaryCache,
       });
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('workos_comm_state_v1', payload);
+        localStorage.setItem('workos_comm_state_v3', payload);
       }
       if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem('workos_comm_state_v1', payload);
+        sessionStorage.setItem('workos_comm_state_v3', payload);
       }
     } catch {
       // Ignore quota errors
