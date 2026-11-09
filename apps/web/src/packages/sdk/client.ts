@@ -1123,16 +1123,66 @@ class CommunicationEngine {
 
   public markChannelRead(channelId: string, userId?: string, messageId?: string) {
     const chan = this.channels.find((c) => c.id === channelId);
+    let notifsChanged = false;
     if (chan) {
       chan.unread_count = 0;
-      if (userId) {
-        this.userReadMarkers[`${userId}_${channelId}`] = {
-          lastReadAt: new Date().toISOString(),
-          lastReadMessageId: messageId,
-        };
-      }
-      this.persist();
+    }
+    if (userId) {
+      this.userReadMarkers[`${userId}_${channelId}`] = {
+        lastReadAt: new Date().toISOString(),
+        lastReadMessageId: messageId,
+      };
+
+      // Mark all notifications for this conversation and user as read
+      this.notifications = this.notifications.map((n) => {
+        if (
+          n.conversation_id === channelId &&
+          (n.user_id === userId || !n.user_id) &&
+          !n.is_read
+        ) {
+          notifsChanged = true;
+          return { ...n, is_read: true };
+        }
+        return n;
+      });
+    }
+    this.persist();
+    if (chan) {
       this.emit('channel.updated', chan);
+    }
+    if (notifsChanged) {
+      this.emit('notification.updated', { conversationId: channelId, is_read: true });
+      if (this.bus) {
+        try {
+          this.bus.postMessage({ type: 'notification.updated', data: { conversationId: channelId, is_read: true } });
+        } catch {}
+      }
+    }
+  }
+
+  public markConversationNotificationsAsRead(claims: TokenClaims, conversationId: string): void {
+    this.verifyToken(claims);
+    let changed = false;
+    this.notifications = this.notifications.map((n) => {
+      if (
+        n.company_id === claims.company_id &&
+        (n.user_id === claims.sub || !n.user_id) &&
+        n.conversation_id === conversationId &&
+        !n.is_read
+      ) {
+        changed = true;
+        return { ...n, is_read: true };
+      }
+      return n;
+    });
+    if (changed) {
+      this.persist();
+      this.emit('notification.updated', { conversationId, is_read: true });
+      if (this.bus) {
+        try {
+          this.bus.postMessage({ type: 'notification.updated', data: { conversationId, is_read: true } });
+        } catch {}
+      }
     }
   }
 

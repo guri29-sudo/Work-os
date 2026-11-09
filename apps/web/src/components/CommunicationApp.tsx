@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Home,
   MessageSquare,
@@ -158,6 +158,11 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connected');
 
+  const activeChannelIdRef = useRef(activeChannelId);
+  useEffect(() => {
+    activeChannelIdRef.current = activeChannelId;
+  }, [activeChannelId]);
+
   // Load claims from getAccessToken
   const initSession = useCallback(async () => {
     try {
@@ -166,13 +171,17 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       const resolvedClaims = mapClaimsToSynthetic(rawClaims) || (await client.getClaims());
       setClaims(resolvedClaims);
 
-      const userChannels = communicationEngine.getChannels(resolvedClaims);
-      setChannels(userChannels);
-
-      if (initialChannelId) {
-        setActiveChannelId(initialChannelId);
+      const match = window.location.pathname.match(/^\/app\/(?:channels|conversations|groups)\/([^/]+)/);
+      const targetChannelId = initialChannelId || (match ? decodeURIComponent(match[1]) : null);
+      if (targetChannelId && resolvedClaims?.sub) {
+        communicationEngine.markChannelRead(targetChannelId, resolvedClaims.sub);
+        setActiveChannelId(targetChannelId);
         setCurrentView('conversation');
       }
+
+      const userChannels = communicationEngine.getChannels(resolvedClaims);
+      setChannels(userChannels);
+      setUnreadNotificationsCount(communicationEngine.getUnreadNotificationsCount(resolvedClaims));
     } catch (err) {
       // Session init failed silently
     }
@@ -190,6 +199,10 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
         const msgs = communicationEngine.getMessages(claims, channelId);
         setMessages(msgs);
         communicationEngine.markChannelRead(channelId, claims.sub);
+        setChannels((prev) =>
+          prev.map((c) => (c.id === channelId ? { ...c, unread_count: 0 } : c))
+        );
+        setUnreadNotificationsCount(communicationEngine.getUnreadNotificationsCount(claims));
       } catch (err: any) {
         // Channel message load failed
       }
@@ -205,42 +218,40 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
 
   // Real-time engine event subscriptions
   useEffect(() => {
+    if (!claims) return;
+
     const unsubMsg = communicationEngine.subscribe('message.created', (newMsg: Message) => {
-      if (newMsg.channel_id === activeChannelId) {
+      if (newMsg.channel_id === activeChannelIdRef.current) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev;
           return [...prev, newMsg];
         });
       }
       // Refresh channels for unread counters and snippets
-      if (claims) {
-        setChannels(communicationEngine.getChannels(claims));
-      }
+      setChannels(communicationEngine.getChannels(claims));
     });
 
     const unsubUpdated = communicationEngine.subscribe('message.updated', (updated: Message) => {
-      if (updated.channel_id === activeChannelId) {
+      if (updated.channel_id === activeChannelIdRef.current) {
         setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
       }
     });
 
     const unsubChan = communicationEngine.subscribe('channel.created', () => {
-      if (claims) setChannels(communicationEngine.getChannels(claims));
+      setChannels(communicationEngine.getChannels(claims));
     });
 
     const unsubChanUp = communicationEngine.subscribe('channel.updated', () => {
-      if (claims) setChannels(communicationEngine.getChannels(claims));
+      setChannels(communicationEngine.getChannels(claims));
     });
 
     const loadNotifCount = () => {
-      if (claims) {
-        setUnreadNotificationsCount(communicationEngine.getUnreadNotificationsCount(claims));
-      }
+      setUnreadNotificationsCount(communicationEngine.getUnreadNotificationsCount(claims));
     };
     loadNotifCount();
     const unsubNotifCreated = communicationEngine.subscribe('notification.created', () => {
       loadNotifCount();
-      if (claims) setChannels(communicationEngine.getChannels(claims));
+      setChannels(communicationEngine.getChannels(claims));
     });
     const unsubNotifUpdated = communicationEngine.subscribe('notification.updated', loadNotifCount);
     const unsubNotifAllRead = communicationEngine.subscribe('notification.all_read', loadNotifCount);
@@ -262,7 +273,7 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
       unsubNotifAllRead();
       unsubConn();
     };
-  }, [activeChannelId, claims]);
+  }, [claims]);
 
   // ⌘K Keyboard shortcut listener
   useEffect(() => {
@@ -280,6 +291,13 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
     setActiveChannelId(channelId);
     setCurrentView('conversation');
     setActiveThreadMessage(null);
+    if (claims) {
+      communicationEngine.markChannelRead(channelId, claims.sub);
+      setChannels((prev) =>
+        prev.map((c) => (c.id === channelId ? { ...c, unread_count: 0 } : c))
+      );
+      setUnreadNotificationsCount(communicationEngine.getUnreadNotificationsCount(claims));
+    }
   };
 
   const handleOpenObject = (obj: WorkOSObjectRef) => {
