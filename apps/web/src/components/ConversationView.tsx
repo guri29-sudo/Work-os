@@ -99,7 +99,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 }) => {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [composerPanel, setComposerPanel] = useState<null | 'menu' | 'mention' | 'object' | 'emoji'>(null);
+  const [composerPanel, setComposerPanel] = useState<null | 'menu' | 'mention' | 'object' | 'emoji' | 'summary-range'>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
@@ -112,7 +112,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   // AI Summary States
-  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [summaryResponse, setSummaryResponse] = useState<GenerateSummaryResponse | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -133,6 +132,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Click-outside listener to dismiss popover panels on desktop
+  useEffect(() => {
+    if (!composerPanel || isMobile) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const formEl = textareaRef.current?.closest('form');
+      if (formEl && formEl.contains(e.target as Node)) {
+        return;
+      }
+      setComposerPanel(null);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [composerPanel, isMobile]);
 
   // Compute unread count for current conversation (messages by others, non-deleted, after last read marker)
   const unreadCount = communicationEngine.getUnreadCountForConversation(claims, channel.id);
@@ -159,8 +172,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const defaultToDateStr = React.useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
   const handleOpenDateRangePicker = () => {
-    setComposerPanel(null);
-    setShowDateRangePicker(true);
+    setComposerPanel('summary-range');
   };
 
   const executeGenerateSummary = async (fromUtc: string, toUtc: string, regenerate = false) => {
@@ -209,7 +221,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     fromFmt: string,
     toFmt: string
   ) => {
-    setShowDateRangePicker(false);
+    setComposerPanel(null);
     setSummaryFromUtc(fromUtc);
     setSummaryToUtc(toUtc);
     setSummaryFromFormatted(fromFmt);
@@ -1057,7 +1069,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                   ))}
                   <button
                     type="button"
-                    onClick={handleOpenDateRangePicker}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenDateRangePicker();
+                    }}
                     className={`w-full min-h-[48px] px-3 py-2.5 rounded-xl text-left text-sm flex items-center justify-between gap-3 transition ${
                       hasSummaryHighlight
                         ? 'bg-[#4f3fd1]/20 text-[#cfc9ff] border border-[#4f3fd1]/40 shadow-sm shadow-[#4f3fd1]/30 hover:bg-[#4f3fd1]/30'
@@ -1096,7 +1111,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                 ))}
                 <button
                   type="button"
-                  onClick={handleOpenDateRangePicker}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenDateRangePicker();
+                  }}
                   className={`w-full px-3 py-2 rounded-xl text-left text-sm flex items-center justify-between gap-3 transition ${
                     hasSummaryHighlight
                       ? 'bg-[#4f3fd1]/20 text-[#cfc9ff] border border-[#4f3fd1]/40 shadow-sm shadow-[#4f3fd1]/30 hover:bg-[#4f3fd1]/30'
@@ -1191,6 +1209,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               ))}
             </div>
           )}
+
+          {composerPanel === 'summary-range' && (
+            <DateRangePicker
+              initialFromDate={defaultFromDateStr}
+              initialToDate={defaultToDateStr}
+              isMobile={isMobile}
+              isSubmitting={isSummaryLoading}
+              onGenerate={handleStartSummary}
+              onClose={() => setComposerPanel(null)}
+            />
+          )}
         </form>
       </div>
 
@@ -1206,17 +1235,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
             }
           }}
           onClose={() => setViewingAttachment(null)}
-        />
-      )}
-
-      {showDateRangePicker && (
-        <DateRangePicker
-          initialFromDate={defaultFromDateStr}
-          initialToDate={defaultToDateStr}
-          isMobile={isMobile}
-          isSubmitting={isSummaryLoading}
-          onGenerate={handleStartSummary}
-          onClose={() => setShowDateRangePicker(false)}
         />
       )}
 

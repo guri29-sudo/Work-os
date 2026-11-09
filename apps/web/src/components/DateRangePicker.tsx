@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar, Sparkles, X, AlertCircle } from 'lucide-react';
 
 export const MAX_SUMMARY_RANGE_DAYS = 90;
@@ -22,6 +22,26 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const [fromDate, setFromDate] = useState<string>(initialFromDate);
   const [toDate, setToDate] = useState<string>(initialToDate);
+
+  // Sync if initial dates change
+  useEffect(() => {
+    if (initialFromDate) setFromDate(initialFromDate);
+  }, [initialFromDate]);
+
+  useEffect(() => {
+    if (initialToDate) setToDate(initialToDate);
+  }, [initialToDate]);
+
+  // Keyboard accessibility: ESC to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // Today in YYYY-MM-DD format (local timezone)
   const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
@@ -56,8 +76,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return null;
   }, [fromDate, toDate, todayStr]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (validationError || isSubmitting) return;
 
     // Convert local midnight / end-of-day to UTC ISO-8601 strings
@@ -91,7 +111,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         />
       )}
 
-      <div className={containerClasses}>
+      <div className={containerClasses} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#2e2e38]">
           <div className="flex items-center gap-2">
@@ -108,7 +128,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <div className="space-y-3.5">
           {/* From Date */}
           <div>
             <label className="block text-xs font-semibold text-[#8a8a93] uppercase tracking-wider mb-1">
@@ -120,6 +140,12 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 value={fromDate}
                 max={todayStr}
                 onChange={(e) => setFromDate(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
                 className="w-full bg-[#121217] border border-[#2e2e38] focus:border-[#4f3fd1] rounded-xl px-3 py-2 text-sm text-white outline-none transition"
               />
             </div>
@@ -136,6 +162,12 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 value={toDate}
                 max={todayStr}
                 onChange={(e) => setToDate(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
                 className="w-full bg-[#121217] border border-[#2e2e38] focus:border-[#4f3fd1] rounded-xl px-3 py-2 text-sm text-white outline-none transition"
               />
             </div>
@@ -159,15 +191,16 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={() => handleSubmit()}
               disabled={!!validationError || isSubmitting}
-              className="flex-1 px-3 py-2 rounded-xl bg-[#4f3fd1] hover:bg-[#5d4de0] disabled:opacity-40 disabled:hover:bg-[#4f3fd1] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm shadow-[#4f3fd1]/30 transition"
+              className="flex-1 px-3 py-2 rounded-xl bg-[#4f3fd1] hover:bg-[#5d4de0] disabled:opacity-40 disabled:hover:bg-[#4f3fd1] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm shadow-[#4f3fd1]/30 transition cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
               {isSubmitting ? 'Generating...' : 'Generate Summary'}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </>
   );
