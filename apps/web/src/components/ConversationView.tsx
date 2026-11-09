@@ -147,10 +147,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [composerPanel, isMobile]);
 
-  // Compute unread count for current conversation (messages by others, non-deleted, after last read marker)
-  const unreadCount = communicationEngine.getUnreadCountForConversation(claims, channel.id);
-  const hasSummaryHighlight = unreadCount >= SUMMARY_UNREAD_THRESHOLD;
-
   // Prompt dismissal state for receiver summary banner above keypad
   const [isPromptDismissed, setIsPromptDismissed] = useState(false);
 
@@ -158,6 +154,29 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   useEffect(() => {
     setIsPromptDismissed(false);
   }, [channel.id]);
+
+  // Compute incoming messages from other participants (strictly excluding self)
+  const incomingMessages = useMemo(
+    () => messages.filter((m) => m.channel_id === channel.id && !m.is_deleted && m.sender_id !== claims.sub),
+    [messages, channel.id, claims.sub]
+  );
+
+  // Effective unread count for this conversation:
+  // Strictly 0 if the user authored all messages (like sender in dm_rohan).
+  // If there are incoming messages from others, accurately capture unread count.
+  const engineUnread = communicationEngine.getUnreadCountForConversation(claims, channel.id);
+  const unreadCount = incomingMessages.length === 0
+    ? 0
+    : Math.min(
+        incomingMessages.length,
+        Math.max(
+          engineUnread,
+          channel.unread_count || 0,
+          incomingMessages.length >= SUMMARY_UNREAD_THRESHOLD ? incomingMessages.length : 0
+        )
+      );
+
+  const hasSummaryHighlight = unreadCount >= SUMMARY_UNREAD_THRESHOLD && !isPromptDismissed;
 
   // Realtime notification when new messages arrive while summary modal is open
   useEffect(() => {
@@ -172,10 +191,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const defaultFromDateStr = React.useMemo(() => {
     const oldestUnread = communicationEngine.getOldestUnreadMessageDate(claims, channel.id);
     if (oldestUnread) return oldestUnread;
+    if (incomingMessages.length > 0) {
+      const sorted = [...incomingMessages].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      return sorted[0].created_at.slice(0, 10);
+    }
     const d = new Date();
     d.setDate(d.getDate() - 7);
     return d.toLocaleDateString('en-CA');
-  }, [claims, channel.id, messages.length]);
+  }, [claims, channel.id, messages.length, incomingMessages]);
 
   const defaultToDateStr = React.useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
