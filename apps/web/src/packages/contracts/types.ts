@@ -173,3 +173,36 @@ export interface CommunicationAppProps {
   onSwitchAccount?: () => void;
   embedded?: boolean;
 }
+
+export interface SummaryDecision {
+  decision: string;
+  by: string | null;
+}
+
+export interface SummaryActionItem {
+  task: string;
+  assignee: string | null;
+  due: string | null;
+}
+
+export interface SummaryData {
+  overview: string;
+  discussion_points: string[];
+  decisions: SummaryDecision[];
+  pending: string[];
+  action_items: SummaryActionItem[];
+  participants: string[];
+}
+
+export interface GenerateSummaryResponse {
+  empty?: boolean;
+  message?: string;
+  summary?: SummaryData;
+  cached?: boolean;
+  cached_at?: string;
+  created_at?: string;
+  model?: string;
+  message_count?: number;
+  was_condensed?: boolean;
+}
+

@@ -26,6 +26,7 @@ import auditRoutes from "./routes/v1/audit.js";
 import searchRoutes from "./routes/v1/search.js";
 import attachmentRoutes from "./routes/v1/attachments.js";
 import webhookRoutes from "./routes/v1/webhooks.js";
+import summaryRoutes from "./routes/v1/summary.js";
 import idpRoutes from "./routes/idp.js";
 import { pubsub } from "./pubsub/index.js";
 import { verifyAppUserRole } from "./db/verifyRole.js";
@@ -185,6 +186,7 @@ export async function buildApp(opts?: { testing?: boolean }) {
   await app.register(searchRoutes);
   await app.register(attachmentRoutes);
   await app.register(webhookRoutes);
+  await app.register(summaryRoutes);
   await app.register(idpRoutes);
   await app.register(wsGateway);
 

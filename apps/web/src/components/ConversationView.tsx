@@ -43,14 +43,17 @@ import {
   TokenClaims,
   User,
   WorkOSObjectRef,
+  GenerateSummaryResponse,
 } from '../packages/contracts/types';
 import {
   SYNTHETIC_OBJECTS,
   SYNTHETIC_USERS,
 } from '../packages/test-fixtures/fixtures';
-import { communicationEngine } from '../packages/sdk/client';
+import { communicationEngine, SUMMARY_UNREAD_THRESHOLD } from '../packages/sdk/client';
 import { downloadAttachmentToDevice, processDeviceUpload } from '../utils/fileUtils';
 import { PdfViewerModal } from './PdfViewerModal';
+import { AiSummaryModal } from './AiSummaryModal';
+import { DateRangePicker } from './DateRangePicker';
 
 interface ConversationViewProps {
   claims: TokenClaims;
@@ -107,6 +110,125 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [selectedObjects, setSelectedObjects] = useState<WorkOSObjectRef[]>([]);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+  // AI Summary States
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [summaryResponse, setSummaryResponse] = useState<GenerateSummaryResponse | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [summaryLoadingCount, setSummaryLoadingCount] = useState(0);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryFromFormatted, setSummaryFromFormatted] = useState('');
+  const [summaryToFormatted, setSummaryToFormatted] = useState('');
+  const [summaryFromUtc, setSummaryFromUtc] = useState('');
+  const [summaryToUtc, setSummaryToUtc] = useState('');
+  const [hasNewMessagesSinceSummary, setHasNewMessagesSinceSummary] = useState(false);
+  const lastSummaryMessageCountRef = useRef(0);
+  const summaryAbortControllerRef = useRef<AbortController | null>(null);
+
+  // Mobile viewport detection
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Compute unread count for current conversation (messages by others, non-deleted, after last read marker)
+  const unreadCount = communicationEngine.getUnreadCountForConversation(claims, channel.id);
+  const hasSummaryHighlight = unreadCount >= SUMMARY_UNREAD_THRESHOLD;
+
+  // Realtime notification when new messages arrive while summary modal is open
+  useEffect(() => {
+    if (showSummaryModal && !isSummaryLoading && lastSummaryMessageCountRef.current > 0) {
+      if (messages.length > lastSummaryMessageCountRef.current) {
+        setHasNewMessagesSinceSummary(true);
+      }
+    }
+  }, [messages.length, showSummaryModal, isSummaryLoading]);
+
+  // Default From Date: oldest unread message if any, otherwise 7 days ago
+  const defaultFromDateStr = React.useMemo(() => {
+    const oldestUnread = communicationEngine.getOldestUnreadMessageDate(claims, channel.id);
+    if (oldestUnread) return oldestUnread;
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toLocaleDateString('en-CA');
+  }, [claims, channel.id, messages.length]);
+
+  const defaultToDateStr = React.useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+
+  const handleOpenDateRangePicker = () => {
+    setComposerPanel(null);
+    setShowDateRangePicker(true);
+  };
+
+  const executeGenerateSummary = async (fromUtc: string, toUtc: string, regenerate = false) => {
+    if (summaryAbortControllerRef.current) {
+      summaryAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    summaryAbortControllerRef.current = controller;
+
+    setIsSummaryLoading(true);
+    setSummaryError(null);
+    setHasNewMessagesSinceSummary(false);
+
+    // Calculate message count for the loading indicator
+    const fromD = new Date(fromUtc);
+    const toD = new Date(toUtc);
+    const inRange = messages.filter((m) => {
+      if (m.channel_id !== channel.id || m.is_deleted) return false;
+      const d = new Date(m.created_at);
+      return d >= fromD && d <= toD;
+    });
+    setSummaryLoadingCount(inRange.length);
+
+    try {
+      const res = await communicationEngine.generateSummary(
+        claims,
+        channel.id,
+        fromUtc,
+        toUtc,
+        regenerate,
+        controller.signal
+      );
+      setSummaryResponse(res);
+      lastSummaryMessageCountRef.current = messages.length;
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      setSummaryError(err.message || 'Failed to generate AI summary');
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
+  const handleStartSummary = (
+    fromUtc: string,
+    toUtc: string,
+    fromFmt: string,
+    toFmt: string
+  ) => {
+    setShowDateRangePicker(false);
+    setSummaryFromUtc(fromUtc);
+    setSummaryToUtc(toUtc);
+    setSummaryFromFormatted(fromFmt);
+    setSummaryToFormatted(toFmt);
+    setShowSummaryModal(true);
+    executeGenerateSummary(fromUtc, toUtc, false);
+  };
+
+  const handleRegenerateSummary = () => {
+    if (!summaryFromUtc || !summaryToUtc) return;
+    executeGenerateSummary(summaryFromUtc, summaryToUtc, true);
+  };
+
+  const handleCancelSummary = () => {
+    if (summaryAbortControllerRef.current) {
+      summaryAbortControllerRef.current.abort();
+    }
+    setIsSummaryLoading(false);
+  };
 
   // PDF Preview & Pinned Drawer State
   const [viewingAttachment, setViewingAttachment] = useState<Attachment | null>(null);
@@ -359,6 +481,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       {/* Header */}
       <div className="group/header mx-1.5 h-[70px] px-3 border-b border-[#26262c] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3 min-w-0">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="md:hidden min-h-[44px] min-w-[44px] -ml-2 p-2 rounded-xl text-[#8a8a93] hover:text-white hover:bg-white/10 flex items-center justify-center transition shrink-0"
+              aria-label="Back to conversations"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
           <div
             className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white font-semibold text-[15px]"
             style={{ backgroundColor: '#4f3fd1' }}
@@ -885,32 +1017,104 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           <button
             type="button"
             onClick={() => setComposerPanel(composerPanel ? null : 'menu')}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[#a5a5ad] hover:text-white hover:bg-white/10 shrink-0 transition"
+            className="relative w-8 h-8 rounded-full flex items-center justify-center text-[#a5a5ad] hover:text-white hover:bg-white/10 shrink-0 transition"
             aria-label="More actions"
             aria-expanded={!!composerPanel}
           >
             <Plus className="w-[18px] h-[18px]" strokeWidth={1.75} />
+            {hasSummaryHighlight && (
+              <span
+                title={`${unreadCount} unread messages`}
+                className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-[#8b7dff] ring-2 ring-[#17171b] shadow-sm shadow-[#4f3fd1]"
+              />
+            )}
           </button>
 
           {composerPanel === 'menu' && (
-            <div className={`${popover} w-56`}>
-              {[
-                { label: 'Attach file', icon: Paperclip, run: () => { fileInputRef.current?.click(); setComposerPanel(null); } },
-                { label: 'Mention colleague', icon: AtSign, run: () => setComposerPanel('mention') },
-                { label: 'Link WorkOS record', icon: FolderKanban, run: () => setComposerPanel('object') },
-                { label: 'Insert emoji', icon: Smile, run: () => setComposerPanel('emoji') },
-              ].map(({ label, icon: Icon, run }) => (
+            isMobile ? (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs animate-fadeIn"
+                  onClick={() => setComposerPanel(null)}
+                />
+                <div className="fixed inset-x-0 bottom-0 z-50 bg-[#17171d] border-t border-[#2e2e38] rounded-t-2xl p-4 shadow-2xl animate-slideUp text-white space-y-1">
+                  <div className="w-10 h-1 bg-[#2e2e38] rounded-full mx-auto mb-3" />
+                  {[
+                    { label: 'Attach file', icon: Paperclip, run: () => { fileInputRef.current?.click(); setComposerPanel(null); } },
+                    { label: 'Mention colleague', icon: AtSign, run: () => setComposerPanel('mention') },
+                    { label: 'Link WorkOS record', icon: FolderKanban, run: () => setComposerPanel('object') },
+                    { label: 'Insert emoji', icon: Smile, run: () => setComposerPanel('emoji') },
+                  ].map(({ label, icon: Icon, run }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={run}
+                      className="w-full min-h-[48px] px-3 py-2.5 rounded-xl text-left text-sm text-white hover:bg-white/10 flex items-center gap-3 transition"
+                    >
+                      <Icon className="w-5 h-5 text-[#8b7dff] shrink-0" />
+                      <span className="font-medium">{label}</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleOpenDateRangePicker}
+                    className={`w-full min-h-[48px] px-3 py-2.5 rounded-xl text-left text-sm flex items-center justify-between gap-3 transition ${
+                      hasSummaryHighlight
+                        ? 'bg-[#4f3fd1]/20 text-[#cfc9ff] border border-[#4f3fd1]/40 shadow-sm shadow-[#4f3fd1]/30 hover:bg-[#4f3fd1]/30'
+                        : 'text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="w-5 h-5 text-[#8b7dff] shrink-0" />
+                      <span className="font-medium">Summarize using AI</span>
+                    </div>
+                    {hasSummaryHighlight && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#4f3fd1] text-white shadow-xs">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className={`${popover} w-60`}>
+                {[
+                  { label: 'Attach file', icon: Paperclip, run: () => { fileInputRef.current?.click(); setComposerPanel(null); } },
+                  { label: 'Mention colleague', icon: AtSign, run: () => setComposerPanel('mention') },
+                  { label: 'Link WorkOS record', icon: FolderKanban, run: () => setComposerPanel('object') },
+                  { label: 'Insert emoji', icon: Smile, run: () => setComposerPanel('emoji') },
+                ].map(({ label, icon: Icon, run }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={run}
+                    className="w-full px-3 py-2 rounded-xl text-left text-sm text-white hover:bg-white/10 flex items-center gap-3 transition"
+                  >
+                    <Icon className="w-4 h-4 text-[#8b7dff]" />
+                    {label}
+                  </button>
+                ))}
                 <button
-                  key={label}
                   type="button"
-                  onClick={run}
-                  className="w-full px-3 py-2 rounded-xl text-left text-sm text-white hover:bg-white/10 flex items-center gap-3 transition"
+                  onClick={handleOpenDateRangePicker}
+                  className={`w-full px-3 py-2 rounded-xl text-left text-sm flex items-center justify-between gap-3 transition ${
+                    hasSummaryHighlight
+                      ? 'bg-[#4f3fd1]/20 text-[#cfc9ff] border border-[#4f3fd1]/40 shadow-sm shadow-[#4f3fd1]/30 hover:bg-[#4f3fd1]/30'
+                      : 'text-white hover:bg-white/10'
+                  }`}
                 >
-                  <Icon className="w-4 h-4 text-[#8b7dff]" />
-                  {label}
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-4 h-4 text-[#8b7dff]" />
+                    <span>Summarize using AI</span>
+                  </div>
+                  {hasSummaryHighlight && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#4f3fd1] text-white shadow-xs">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </button>
-              ))}
-            </div>
+              </div>
+            )
           )}
 
           {composerPanel === 'mention' && (
@@ -1004,6 +1208,33 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           onClose={() => setViewingAttachment(null)}
         />
       )}
+
+      {showDateRangePicker && (
+        <DateRangePicker
+          initialFromDate={defaultFromDateStr}
+          initialToDate={defaultToDateStr}
+          isMobile={isMobile}
+          isSubmitting={isSummaryLoading}
+          onGenerate={handleStartSummary}
+          onClose={() => setShowDateRangePicker(false)}
+        />
+      )}
+
+      <AiSummaryModal
+        isOpen={showSummaryModal}
+        onClose={() => setShowSummaryModal(false)}
+        conversationName={channel.type === 'direct' ? channel.name : `#${channel.name}`}
+        fromFormatted={summaryFromFormatted}
+        toFormatted={summaryToFormatted}
+        summaryResponse={summaryResponse}
+        isLoading={isSummaryLoading}
+        loadingCount={summaryLoadingCount}
+        onCancelLoading={handleCancelSummary}
+        error={summaryError}
+        onRetry={() => executeGenerateSummary(summaryFromUtc, summaryToUtc, false)}
+        onRegenerate={handleRegenerateSummary}
+        hasNewMessagesSinceSummary={hasNewMessagesSinceSummary}
+      />
     </div>
   );
 };

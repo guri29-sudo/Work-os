@@ -27,6 +27,10 @@ const schema = z.object({
   STORAGE_SECRET_KEY: z.string().default("minio_secret"),
   STORAGE_BUCKET: z.string().default("cs-attachments"),
   STORAGE_REGION: z.string().default("us-east-1"),
+  AI_API_KEY: z.string().optional(),
+  AI_SUMMARY_MODEL: z.string().default("gemini-1.5-flash"),
+  AI_BASE_URL: z.string().optional(),
+  AI_PROVIDER: z.enum(["google", "openai", "auto", "mock"]).default("auto"),
 });
 
 const parsed = schema.safeParse(process.env);

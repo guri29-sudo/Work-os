@@ -747,26 +747,26 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
             <button
               type="button"
               onClick={() => setShowMobileChannelsDrawer(true)}
-              className="min-h-[38px] min-w-[38px] flex items-center justify-center p-1.5 rounded-xl text-slate-600 dark:text-slate-200 hover:text-blue-700 hover:bg-white/80 active:bg-blue-100 transition"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-600 dark:text-slate-200 hover:text-blue-700 hover:bg-white/80 active:bg-blue-100 transition"
               aria-label="Open channels list"
               title="Channels & Messages"
             >
               <Menu className="w-5 h-5" />
             </button>
             {totalUnread > 0 && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
             )}
           </div>
 
           {/* Omnibox Search bar */}
           <div
             onClick={() => setShowSearchModal(true)}
-            className="flex-1 max-w-md bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-slate-700 px-3 py-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-300 hover:border-blue-300 hover:shadow-xs transition cursor-pointer shadow-2xs min-w-0"
+            className="flex-1 max-w-md bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-slate-700 px-3 py-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-300 hover:border-blue-300 hover:shadow-xs transition cursor-pointer shadow-2xs min-w-0 min-h-[44px]"
             role="search"
             aria-label="Search messages, files, and people"
           >
             <div className="flex items-center gap-2 min-w-0 truncate">
-              <Search className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <Search className="w-4 h-4 text-blue-500 shrink-0" />
               <span className="truncate">Search messages, files...</span>
             </div>
             <kbd className="hidden sm:inline font-mono text-[10px] bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-200 dark:border-slate-600 shrink-0">
@@ -776,14 +776,17 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-1.5 sm:gap-4 shrink-0 pr-1">
-            {/* Connection Status Badge (hidden on mobile) */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-blue-100 px-3 py-1.5 rounded-xl shadow-2xs">
+            {/* Connection Status Badge (Dot on mobile, full on desktop) */}
+            <div
+              className="flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-blue-100 px-2 sm:px-3 py-1.5 rounded-xl shadow-2xs min-h-[36px]"
+              title={`Connection: ${connectionStatus}`}
+            >
               <span className={`w-2 h-2 rounded-full ${
                 connectionStatus === 'connected' ? 'bg-emerald-500' :
                 connectionStatus === 'reconnecting' ? 'bg-amber-500 animate-pulse' :
                 'bg-red-500'
               }`} />
-              <span className="font-semibold text-slate-700">
+              <span className="hidden sm:inline font-semibold text-slate-700">
                 {connectionStatus === 'connected' ? 'Connected' :
                  connectionStatus === 'reconnecting' ? 'Reconnecting…' :
                  'Offline'}
@@ -803,24 +806,26 @@ export const CommunicationApp: React.FC<CommunicationAppProps> = ({
             <div className="relative shrink-0">
               <button
                 onClick={() => setShowNotificationsDrawer(!showNotificationsDrawer)}
-                className="min-h-[38px] min-w-[38px] flex items-center justify-center p-2 rounded-xl text-slate-500 dark:text-slate-300 hover:text-blue-700 hover:bg-white dark:hover:bg-slate-800 transition"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-slate-500 dark:text-slate-300 hover:text-blue-700 hover:bg-white dark:hover:bg-slate-800 transition"
                 title="Notifications"
                 aria-label="Notifications"
               >
                 <Bell className="w-4 h-4" />
               </button>
               {(unreadNotificationsCount > 0 || totalUnread > 0) && (
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-[#edf3fc] dark:ring-slate-900 animate-pulse" />
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-[#edf3fc] dark:ring-slate-900 animate-pulse" />
               )}
             </div>
 
             {/* Avatar Pill */}
             <div
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs cursor-pointer shrink-0 ring-2 ring-white/60 dark:ring-slate-700"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shrink-0"
               title={claims.name}
             >
-              {userInitials}
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs ring-2 ring-white/60 dark:ring-slate-700">
+                {userInitials}
+              </div>
             </div>
 
             {/* "+ New message" Button (desktop only, mobile has FAB) */}

@@ -1,4 +1,4 @@
-﻿import { eq, and, sql, gt, count } from "drizzle-orm";
+import { eq, and, sql, gt, count } from "drizzle-orm";
 import { memberships, messages } from "../db/schema/index.js";
 import { withTenantTx } from "./base.js";
 import type { RequestIdentity } from "../auth/plugin.js";
@@ -47,6 +47,7 @@ export const readStateRepo = {
           .update(memberships)
           .set({
             last_read_message_id: targetId,
+            last_read_at: new Date(),
             updated_at: new Date(),
           })
           .where(

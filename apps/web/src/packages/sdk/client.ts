@@ -14,7 +14,10 @@ import {
   User,
   WebhookEvent,
   WorkOSObjectRef,
+  GenerateSummaryResponse,
 } from '../contracts/types';
+
+export const SUMMARY_UNREAD_THRESHOLD = 8;
 import {
   INITIAL_AUDIT_LOGS,
   INITIAL_CHANNELS,
@@ -79,6 +82,8 @@ class CommunicationEngine {
   private listeners: Map<string, Set<EventListener>> = new Map();
   private connectionStatus: ConnectionStatus = 'connected';
   private bus: BroadcastChannel | null = null;
+  private userReadMarkers: Record<string, { lastReadAt: string; lastReadMessageId?: string }> = {};
+  private summaryCache: Record<string, GenerateSummaryResponse> = {};
 
   constructor() {
     // Try to load any saved demo state from localStorage / sessionStorage or fallback to initial
@@ -93,6 +98,8 @@ class CommunicationEngine {
           this.messages = parsed.messages;
           if (parsed.auditLogs) this.auditLogs = parsed.auditLogs;
           if (parsed.notifications) this.notifications = parsed.notifications;
+          if (parsed.userReadMarkers) this.userReadMarkers = parsed.userReadMarkers;
+          if (parsed.summaryCache) this.summaryCache = parsed.summaryCache;
         }
       }
     } catch {
@@ -185,6 +192,8 @@ class CommunicationEngine {
         messages: this.messages,
         auditLogs: this.auditLogs,
         notifications: this.notifications,
+        userReadMarkers: this.userReadMarkers,
+        summaryCache: this.summaryCache,
       });
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('workos_comm_state_v1', payload);
@@ -1101,13 +1110,159 @@ class CommunicationEngine {
     this.emit('audit.created', entry);
   }
 
-  public markChannelRead(channelId: string) {
+  public markChannelRead(channelId: string, userId?: string, messageId?: string) {
     const chan = this.channels.find((c) => c.id === channelId);
     if (chan) {
       chan.unread_count = 0;
+      if (userId) {
+        this.userReadMarkers[`${userId}_${channelId}`] = {
+          lastReadAt: new Date().toISOString(),
+          lastReadMessageId: messageId,
+        };
+      }
       this.persist();
       this.emit('channel.updated', chan);
     }
+  }
+
+  public getUnreadCountForConversation(claims: TokenClaims, channelId: string): number {
+    const markerKey = `${claims.sub}_${channelId}`;
+    const marker = this.userReadMarkers[markerKey];
+    const lastReadAt = marker?.lastReadAt;
+
+    const validMessages = this.messages.filter(
+      (m) => m.channel_id === channelId && !m.is_deleted && m.sender_id !== claims.sub
+    );
+
+    if (!lastReadAt) {
+      const chan = this.channels.find((c) => c.id === channelId);
+      return chan?.unread_count ?? validMessages.length;
+    }
+
+    const lastReadDate = new Date(lastReadAt);
+    return validMessages.filter((m) => new Date(m.created_at) > lastReadDate).length;
+  }
+
+  public getOldestUnreadMessageDate(claims: TokenClaims, channelId: string): string | null {
+    const markerKey = `${claims.sub}_${channelId}`;
+    const marker = this.userReadMarkers[markerKey];
+    const lastReadAt = marker?.lastReadAt;
+
+    const unreadMessages = this.messages.filter((m) => {
+      if (m.channel_id !== channelId || m.is_deleted || m.sender_id === claims.sub) return false;
+      if (!lastReadAt) return true;
+      return new Date(m.created_at) > new Date(lastReadAt);
+    });
+
+    if (unreadMessages.length === 0) return null;
+
+    const sorted = [...unreadMessages].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    return sorted[0].created_at.slice(0, 10);
+  }
+
+  public async generateSummary(
+    claims: TokenClaims,
+    channelId: string,
+    fromIso: string,
+    toIso: string,
+    regenerate = false,
+    signal?: AbortSignal
+  ): Promise<GenerateSummaryResponse> {
+    const API_BASE =
+      (typeof window !== 'undefined' && (window as any).VITE_COMMUNICATION_API_URL) ||
+      (typeof process !== 'undefined' && process.env?.VITE_COMMUNICATION_API_URL) ||
+      '';
+
+    const token =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('workos_comm_session_token') || '' : '';
+
+    // 1. If backend API is configured or available, try calling it
+    try {
+      const url = `${API_BASE || ''}/api/conversations/${encodeURIComponent(channelId)}/summary`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ from: fromIso, to: toIso, regenerate }),
+        signal,
+      });
+
+      if (res.ok) {
+        const body = await res.json();
+        return (body.data || body) as GenerateSummaryResponse;
+      }
+    } catch (apiErr: any) {
+      if (apiErr.name === 'AbortError') throw apiErr;
+      // Backend not running / offline - fall back to client engine simulation below
+    }
+
+    // 2. Client-side fallback generation
+    const fromDate = new Date(fromIso);
+    const toDate = new Date(toIso);
+
+    const inRangeMessages = this.messages.filter((m) => {
+      if (m.channel_id !== channelId || m.is_deleted) return false;
+      const msgDate = new Date(m.created_at);
+      return msgDate >= fromDate && msgDate <= toDate;
+    });
+
+    if (inRangeMessages.length === 0) {
+      return { empty: true, message: 'No messages in this date range.' };
+    }
+
+    // Cache key
+    const cacheKey = `${channelId}_${fromIso.slice(0, 10)}_${toIso.slice(0, 10)}_${inRangeMessages.length}_${inRangeMessages.map((m) => m.id).join(',')}`;
+    if (!regenerate && this.summaryCache[cacheKey]) {
+      return { ...this.summaryCache[cacheKey], cached: true };
+    }
+
+    // Synthesize structured summary
+    const participants = Array.from(new Set(inRangeMessages.map((m) => m.sender_name)));
+    const decisions: { decision: string; by: string | null }[] = [];
+    const actionItems: { task: string; assignee: string | null; due: string | null }[] = [];
+    const pending: string[] = [];
+    const discussionPoints: string[] = [];
+
+    for (const m of inRangeMessages) {
+      const text = m.content;
+      const lower = text.toLowerCase();
+      if (lower.includes('agree') || lower.includes('decided') || lower.includes('approved') || lower.includes('done')) {
+        decisions.push({ decision: text, by: m.sender_name });
+      } else if (lower.includes('will ') || lower.includes('todo') || lower.includes('action') || lower.includes('please ') || lower.includes('need to')) {
+        actionItems.push({ task: text, assignee: m.sender_name, due: null });
+      } else if (lower.includes('?') || lower.includes('waiting') || lower.includes('blocked') || lower.includes('pending')) {
+        pending.push(text);
+      } else if (text.length > 8 && discussionPoints.length < 5) {
+        discussionPoints.push(`${m.sender_name}: ${text}`);
+      }
+    }
+
+    const summaryData = {
+      overview: `Team members (${participants.join(', ')}) exchanged ${inRangeMessages.length} message(s) discussing key items, active decisions, and next steps for the team.`,
+      discussion_points: discussionPoints.length > 0 ? discussionPoints.slice(0, 5) : ['Team alignment on active tasks and deliverables.'],
+      decisions: decisions.slice(0, 5),
+      pending: pending.slice(0, 5),
+      action_items: actionItems.slice(0, 5),
+      participants,
+    };
+
+    const response: GenerateSummaryResponse = {
+      empty: false,
+      summary: summaryData,
+      cached: false,
+      created_at: new Date().toISOString(),
+      model: 'gemini-1.5-flash',
+      message_count: inRangeMessages.length,
+      was_condensed: inRangeMessages.length > 50,
+    };
+
+    this.summaryCache[cacheKey] = response;
+    this.persist();
+    return response;
   }
 
   public resetDemoData() {

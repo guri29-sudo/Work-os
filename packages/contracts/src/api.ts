@@ -264,3 +264,47 @@ export const HealthResponseSchema = z.object({
   ),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
+
+// --- AI Summary ---------------------------------------------------------------
+
+export const SummaryDecisionSchema = z.object({
+  decision: z.string(),
+  by: z.string().nullable(),
+});
+
+export const SummaryActionItemSchema = z.object({
+  task: z.string(),
+  assignee: z.string().nullable(),
+  due: z.string().nullable(),
+});
+
+export const SummaryDataSchema = z.object({
+  overview: z.string(),
+  discussion_points: z.array(z.string()),
+  decisions: z.array(SummaryDecisionSchema),
+  pending: z.array(z.string()),
+  action_items: z.array(SummaryActionItemSchema),
+  participants: z.array(z.string()),
+});
+export type SummaryData = z.infer<typeof SummaryDataSchema>;
+
+export const GenerateSummaryRequestSchema = z.object({
+  from: z.string().datetime(),
+  to: z.string().datetime(),
+  regenerate: z.boolean().optional().default(false),
+});
+export type GenerateSummaryRequest = z.infer<typeof GenerateSummaryRequestSchema>;
+
+export const GenerateSummaryResponseSchema = z.object({
+  empty: z.boolean().optional(),
+  message: z.string().optional(),
+  summary: SummaryDataSchema.optional(),
+  cached: z.boolean().optional(),
+  cached_at: z.string().optional(),
+  created_at: z.string().optional(),
+  model: z.string().optional(),
+  message_count: z.number().int().nonnegative().optional(),
+  was_condensed: z.boolean().optional(),
+});
+export type GenerateSummaryResponse = z.infer<typeof GenerateSummaryResponseSchema>;
+

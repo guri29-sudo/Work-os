@@ -133,6 +133,7 @@ export const memberships = pgTable(
     company_id: uuid("company_id").notNull(),
     role: memberRoleEnum("role").notNull().default("member"),
     last_read_message_id: uuid("last_read_message_id"),
+    last_read_at: timestamp("last_read_at", { withTimezone: true }),
     notification_pref: notificationPrefEnum("notification_pref").notNull().default("all"),
     is_muted: boolean("is_muted").notNull().default(false),
     joined_at: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
@@ -386,5 +387,35 @@ export const messageMentions = pgTable(
     uniqueIndex("message_mentions_unique_uidx").on(t.message_id, t.user_id),
     index("message_mentions_user_conv_idx").on(t.user_id, t.conversation_id),
     index("message_mentions_company_idx").on(t.company_id),
+  ],
+);
+
+export const conversationSummaries = pgTable(
+  "conversation_summaries",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    conversation_id: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    company_id: uuid("company_id").notNull(),
+    from_ts: timestamp("from_ts", { withTimezone: true }).notNull(),
+    to_ts: timestamp("to_ts", { withTimezone: true }).notNull(),
+    messages_hash: text("messages_hash").notNull(),
+    summary_json: jsonb("summary_json").notNull(),
+    model: text("model").notNull(),
+    created_by: uuid("created_by").notNull(),
+    created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("conv_summaries_conv_range_hash_idx").on(
+      t.conversation_id,
+      t.from_ts,
+      t.to_ts,
+      t.messages_hash,
+    ),
+    index("conv_summaries_company_id_idx").on(t.company_id),
+    index("conv_summaries_created_at_idx").on(t.created_at),
   ],
 );
